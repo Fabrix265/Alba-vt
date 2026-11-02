@@ -1,0 +1,23 @@
+# Secretos
+.env
+
+# Instrucciones locales del agente
+AGENTS.md
+agent.md
+
+# Dependencias
+node_modules/
+
+# Arte de terceros (repo público, MIT)
+assets/*
+!assets/models/
+!assets/props/
+assets/models/*
+!assets/models/.gitkeep
+assets/props/*
+!assets/props/.gitkeep
+
+# Logs y temporales
+*.log
+.DS_Store
+Thumbs.db
