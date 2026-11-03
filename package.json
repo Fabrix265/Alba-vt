@@ -13,6 +13,7 @@
   },
   "scripts": {
     "start": "node src/index.mjs",
+    "alba": "node clients/cli/alba.mjs",
     "doctor": "node scripts/doctor.mjs",
     "demo": "node scripts/demo.mjs",
     "test": "node --test \"test/**/*.test.mjs\""

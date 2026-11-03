@@ -3,16 +3,13 @@ import { config as loadEnv, parse } from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createConfigLoader } from './core/config-loader.mjs';
-import { createBus } from './core/bus.mjs';
-import { normalizeEvent, validateIntent } from './core/events.mjs';
-import { createRulesEngine } from './core/rules-engine.mjs';
-import { createDirector } from './core/director.mjs';
+import { createApp } from './app.mjs';
+import { createVtsProcess } from './platform/vts-process.mjs';
 import { createAssetRegistry } from './core/assets.mjs';
-import { createSpeech } from './core/speech.mjs';
 import { createFakeAdapter } from './adapters/fake/index.mjs';
 import { createVtsAdapter } from './adapters/vts/index.mjs';
 import { createBridgeServer } from './api/server.mjs';
-import { log, warn, warnOnce, error } from './core/log.mjs';
+import { log, warn, error } from './core/log.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 loadEnv({ path: path.join(root, '.env'), quiet: true });
@@ -43,87 +40,29 @@ const adapter = adapterName === 'fake' ? createFakeAdapter() : createVtsAdapter(
 let assets = createAssetRegistry({ assets: config.assets, rootDir: root });
 assets.report();
 
-const bus = createBus();
-let rules = createRulesEngine({ rules: config.rules });
-const director = createDirector({ scenes: config.scenes, persona: config.persona });
-const speech = createSpeech({ onFrame: (value) => adapter.setMouth(value) });
-
-adapter.applyState(director.getState(), {
-  scenes: config.scenes,
-  assets: config.assets,
-  bindings: config.bindings
-});
-
-director.onChange((state) => {
-  if (state.asleep) speech.stop();
-  adapter.applyState(state, {
-    scenes: config.scenes,
-    assets: config.assets,
-    bindings: config.bindings
-  });
-});
-
+const app = createApp({ config, adapter, processControl: createVtsProcess({ env: { ...defaults, ...process.env } }) });
 loader.onChange((next) => {
   config = next;
-  rules = createRulesEngine({ rules: next.rules });
-  director.updateConfig({ scenes: next.scenes, persona: next.persona });
+  app.updateConfig(next);
   assets = createAssetRegistry({ assets: next.assets, rootDir: root });
   assets.report();
   log('config recargada');
 });
 loader.startWatching();
 
-function handleEvent(raw) {
-  const event = normalizeEvent(raw);
-  if (director.getState().asleep) {
-    return { event, decision: null, ignored: true, reason: 'asleep' };
-  }
-  bus.emit('event', event);
-  if (event.type === 'say') {
-    adapter.speak({ text: event.text ?? '' });
-    const result = speech.speak({ text: event.text ?? '' });
-    return {
-      event,
-      decision: null,
-      speech: { durationMs: result.durationMs, synthetic: result.synthetic }
-    };
-  }
-  const decision = rules.evaluate(event);
-  if (decision) {
-    const applied = director.applyIntent(decision.intent, {
-      props: decision.args?.props ?? null
-    });
-    return { event, decision, applied };
-  }
-  return { event, decision: null };
-}
-
-function handleIntent(raw) {
-  const intent = validateIntent(raw?.intent, director.listIntents());
-  if (intent === 'deep_sleep' && !adapter.capabilities.processControl) {
-    warnOnce('process-control', 'el cierre de VTS aun no esta implementado; Alba solo se pausara');
-  }
-  const props = Array.isArray(raw?.props) ? raw.props : null;
-  const applied = director.applyIntent(intent, { props });
-  return { intent, applied };
-}
-
 const server = createBridgeServer({
-  port: bridgePort,
-  token,
-  getState: () => director.getState(),
-  subscribe: (listener) => director.onChange(listener),
-  onEvent: handleEvent,
-  onIntent: handleIntent
+  port: bridgePort, token,
+  getState: app.getState, subscribe: app.onChange,
+  onEvent: app.handleEvent, onIntent: app.handleIntent
 });
 
-const ticker = setInterval(() => director.tick(), 250);
+const ticker = setInterval(() => app.tick(), 250);
 ticker.unref?.();
 
 try {
   const address = await server.start();
   log(`bridge escuchando en http://${address.address}:${address.port}`);
-  log(`adapter: ${adapter.name} | intenciones: ${director.listIntents().join(', ')}`);
+  log(`adapter: ${adapter.name} | intenciones: ${app.getState().intents.join(', ')}`);
 } catch (err) {
   error(`no se pudo arrancar el bridge: ${err.message}`);
   process.exit(1);
@@ -140,7 +79,7 @@ async function shutdown(signal) {
   log(`${signal}: cerrando`);
   clearInterval(ticker);
   loader.stopWatching();
-  speech.stop();
+  app.stop();
   await server.stop();
   await adapter.disconnect();
   process.exit(0);

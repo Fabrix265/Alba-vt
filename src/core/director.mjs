@@ -62,7 +62,7 @@ export function createDirector({ scenes = {}, persona = {}, now = () => Date.now
     const at = options.now ?? now();
     const requestedProps = Array.isArray(options.props) ? options.props : null;
 
-    if (asleep && intent !== 'wake') {
+    if (asleep && intent !== 'wake' && intent !== 'deep_sleep') {
       return { applied: false, reason: 'asleep', state: store.get() };
     }
 
