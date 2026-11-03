@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "bindings.schema.json",
+  "title": "bindings.json",
+  "type": "object",
+  "required": ["default"],
+  "properties": {
+    "default": { "$ref": "#/$defs/binding" },
+    "models": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/binding" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "binding": {
+      "type": "object",
+      "properties": {
+        "match": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "hotkeys": {
+          "type": "object",
+          "additionalProperties": { "type": "string", "minLength": 1 }
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": { "type": "string", "minLength": 1 }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

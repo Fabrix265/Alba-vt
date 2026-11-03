@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "commands.schema.json",
+  "title": "commands.json",
+  "type": "object",
+  "required": ["commands"],
+  "properties": {
+    "commands": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["intent"],
+        "properties": {
+          "intent": { "type": "string", "minLength": 1 },
+          "description": { "type": "string" },
+          "confirm": { "type": "boolean" },
+          "args": { "type": "object" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

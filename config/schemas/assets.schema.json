@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "assets.schema.json",
+  "title": "assets.json",
+  "type": "object",
+  "additionalProperties": { "$ref": "#/$defs/resource" },
+  "$defs": {
+    "resource": {
+      "type": "object",
+      "required": ["type", "file"],
+      "properties": {
+        "type": { "type": "string", "minLength": 1 },
+        "file": { "type": "string", "minLength": 1 },
+        "layer": { "type": "string", "minLength": 1 },
+        "position": {
+          "type": "object",
+          "additionalProperties": { "type": "number" }
+        },
+        "size": { "type": "number", "minimum": 0 },
+        "description": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

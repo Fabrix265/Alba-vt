@@ -1,0 +1,63 @@
+{
+  "$schema": "./schemas/rules.schema.json",
+  "rules": [
+    {
+      "id": "errores-angry",
+      "when": { "type": "error" },
+      "intent": "angry",
+      "priority": 20,
+      "cooldownMs": 10000,
+      "window": { "count": 2, "ms": 30000 }
+    },
+    {
+      "id": "errores-sad",
+      "when": { "type": "error" },
+      "intent": "sad",
+      "priority": 10,
+      "cooldownMs": 30000,
+      "window": { "count": 3, "ms": 120000 }
+    },
+    {
+      "id": "herramienta-codigo",
+      "when": {
+        "type": ["tool.start", "tool.end"],
+        "tool": ["bash", "edit", "write", "patch", "apply_patch"]
+      },
+      "intent": "coding",
+      "cooldownMs": 2500,
+      "debounceMs": 500
+    },
+    {
+      "id": "herramienta-lectura",
+      "when": {
+        "type": ["tool.start", "tool.end"],
+        "tool": ["read", "grep", "glob", "list", "search"]
+      },
+      "intent": "reading",
+      "cooldownMs": 2500,
+      "debounceMs": 500
+    },
+    {
+      "id": "sesion-idle",
+      "when": { "type": "session.idle" },
+      "intent": "idle",
+      "cooldownMs": 2000,
+      "debounceMs": 800
+    },
+    {
+      "id": "sesion-inicio",
+      "when": { "type": "session.start" },
+      "intent": "thinking",
+      "cooldownMs": 5000
+    },
+    {
+      "id": "fin-exitoso",
+      "when": { "type": "tool.end", "ok": true },
+      "intent": "celebrate",
+      "priority": 5,
+      "cooldownMs": 15000,
+      "debounceMs": 1000,
+      "args": { "props": null }
+    }
+  ]
+}

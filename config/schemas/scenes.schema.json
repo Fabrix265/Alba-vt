@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "scenes.schema.json",
+  "title": "scenes.json",
+  "type": "object",
+  "required": ["scenes"],
+  "properties": {
+    "scenes": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["layer"],
+        "properties": {
+          "layer": { "enum": ["base", "activity", "transient"] },
+          "hotkey": { "type": "string", "minLength": 1 },
+          "durationMs": { "type": "integer", "minimum": 0 },
+          "props": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "uniqueItems": true
+          },
+          "parameters": {
+            "type": "object",
+            "additionalProperties": { "type": "number" }
+          },
+          "description": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,40 @@
+{
+  "$schema": "./schemas/commands.schema.json",
+  "commands": {
+    "good night": {
+      "intent": "sleep",
+      "description": "Alba se duerme y deja de reaccionar"
+    },
+    "ring ring": {
+      "intent": "wake",
+      "description": "Despierta a Alba"
+    },
+    "lights out": {
+      "intent": "deep_sleep",
+      "confirm": true,
+      "description": "Cierra VTube Studio (pide confirmacion)"
+    },
+    "hello": {
+      "intent": "celebrate",
+      "description": "Saludo suave"
+    },
+    "focus": {
+      "intent": "coding",
+      "args": { "props": ["keyboard"] },
+      "description": "Modo programar con teclado"
+    },
+    "tea time": {
+      "intent": "idle",
+      "args": { "props": ["mug"] },
+      "description": "Descanso con taza"
+    },
+    "oops": {
+      "intent": "error",
+      "description": "Reaccion de error"
+    },
+    "cheer": {
+      "intent": "celebrate",
+      "description": "Celebracion"
+    }
+  }
+}

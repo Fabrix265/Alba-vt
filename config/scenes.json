@@ -1,0 +1,54 @@
+{
+  "$schema": "./schemas/scenes.schema.json",
+  "scenes": {
+    "idle": {
+      "layer": "base",
+      "description": "Respira y mira al frente"
+    },
+    "thinking": {
+      "layer": "activity",
+      "hotkey": "Thinking"
+    },
+    "coding": {
+      "layer": "activity",
+      "hotkey": "Coding",
+      "props": ["keyboard"]
+    },
+    "reading": {
+      "layer": "activity",
+      "hotkey": "Reading"
+    },
+    "celebrate": {
+      "layer": "transient",
+      "hotkey": "Celebrate",
+      "durationMs": 3000
+    },
+    "error": {
+      "layer": "transient",
+      "hotkey": "Error",
+      "durationMs": 2500
+    },
+    "sad": {
+      "layer": "transient",
+      "hotkey": "Sad",
+      "durationMs": 4000
+    },
+    "angry": {
+      "layer": "transient",
+      "hotkey": "Angry",
+      "durationMs": 2500
+    },
+    "sleep": {
+      "layer": "base",
+      "hotkey": "Sleep"
+    },
+    "deep_sleep": {
+      "layer": "base",
+      "hotkey": "Sleep"
+    },
+    "wake": {
+      "layer": "base",
+      "hotkey": "Wake"
+    }
+  }
+}
