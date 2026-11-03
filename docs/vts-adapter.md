@@ -21,7 +21,9 @@ Los valores de respaldo viven en `scenes.json → scenes → <intención> → pa
 
 Los bindings de Akari usan los IDs verificados por el doctor: `sad → Eyes Cry`, `angry → Angry Sign`, `celebrate → Heart Eyes`, `error → Shock Sign` e `idle → Remove Expressions`. Se mantienen los parámetros de respaldo de las escenas y los alias heredados de `default`. En otros modelos solo se usan los parámetros anunciados por VTS. Las cuatro expresiones son toggles: al entrar en `idle` se ejecuta Remove Expressions; volver a una actividad como `coding` no las limpia por sí solo.
 
-`say` usa el lip-sync sintético del core y el alias `mouth`. `sleep` detiene los frames, retira los props e ignora eventos, incluida la voz. La escena de sueño puede ejecutar un hotkey configurado; sin ese hotkey, VTS recupera su tracking normal al dejar de recibir parámetros. `wake` vuelve a idle.
+`say` usa el lip-sync sintético del core y el alias `mouth`. `sleep` detiene el lip-sync, retira los props e ignora eventos, incluida la voz. Si no hay un hotkey de sueño, la escena puede mantener una pose con `holdPoseWhileAsleep: true` y `parameterRefreshMs` (50–500 ms). Solo se renuevan los parámetros fijos de esa escena; nunca los frames de voz. La escena inicial renueva cada 500 ms los ojos y boca cerrados, FaceAngleX=12 y FaceAngleZ=-18, mediante los alias de bindings.json.
+
+`wake` cancela inmediatamente la pose de sueño, vuelve a idle y, con los bindings de Akari, ejecuta Remove Expressions. Al funcionar ese hotkey, idle no mantiene inyecciones y VTS recupera el tracking. Si falta o falla, se conserva el respaldo normal por parámetros de idle. `deep_sleep` no mantiene poses. Una recarga de configuración sin cambios en sleep no interrumpe su renovación.
 
 ## Props
 

@@ -15,6 +15,8 @@
           "layer": { "enum": ["base", "activity", "transient"] },
           "hotkey": { "type": "string", "minLength": 1 },
           "durationMs": { "type": "integer", "minimum": 0 },
+          "holdPoseWhileAsleep": { "type": "boolean" },
+          "parameterRefreshMs": { "type": "integer", "minimum": 50, "maximum": 500 },
           "props": {
             "type": "array",
             "items": { "type": "string", "minLength": 1 },

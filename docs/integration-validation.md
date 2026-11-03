@@ -35,3 +35,15 @@ Solo para la comprobacion manual del usuario, con cuota disponible: arranca `npm
 Hola Alba y avatar_scene con coding. No cierres ni lances VTS». Comprueba las
 respuestas y el movimiento en VTS. El limite del director puede mantener un
 transiente por encima de coding hasta que expire; /state muestra ambas capas.
+
+## Comprobacion posterior de la pose de dormir
+
+Tras configurar los hotkeys de Akari, VTS volvio a estar conectado. Se corrigio
+sleep para mantener solo sus parametros fijos a baja frecuencia, con un intervalo
+configurado de 500 ms. Se verifico con `node --check` y observando la ventana real
+de VTS: good night mostro ojos y boca cerrados y cabeza inclinada; una captura
+posterior confirmo que la pose seguia aplicada. ring ring devolvio idle y Akari
+recupero los ojos abiertos y la postura normal. Las capturas de comprobacion
+quedaron en assets/ ignorado, fuera del commit. No se ejecutaron tests ni opencode,
+ni se cerro VTS. Los eventos del agente siguen ignorados durante sleep por el
+guard existente del core; no se ejecuto una prueba automatica de ese guard.

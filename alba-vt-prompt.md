@@ -104,7 +104,7 @@ Los props y cualquier otro recurso visual o sonoro se declaran en **`config/asse
 
 Dos niveles, controlados por intenciones (cualquier cliente puede dispararlas):
 
-- **`sleep`**: Alba hace la escena de dormir, **deja de reaccionar** y de inyectar parámetros; los eventos se ignoran. VTS y el bridge siguen abiertos. Sirve para usar opencode con normalidad.
+- **`sleep`**: Alba hace la escena de dormir y **deja de reaccionar**; los eventos y la voz se ignoran. Si no hay hotkey de sueño, mantiene únicamente la pose fija configurada mediante inyecciones a baja frecuencia, para que VTS no devuelva el control. `wake` cancela esa pose y vuelve a idle. VTS y el bridge siguen abiertos. Sirve para usar opencode con normalidad.
 - **`deep_sleep`**: además **cierra VTS** para liberar recursos. El bridge sigue vivo para recibir `wake`.
   - Cerrar un proceso fuera del proyecto exige **mi confirmación explícita** cada vez (prompt `y/N`, con `--yes` opcional solo si lo pongo yo).
   - Para despertar desde deep sleep hay que reabrir VTS: el comando de lanzamiento es **configurable** (p. ej. `steam://rungameid/<appid>`, que debes verificar, o la ruta del exe). Si no está configurado, `wake` me avisa que abra VTS a mano y reconecta solo cuando aparezca.

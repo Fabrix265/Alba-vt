@@ -45,6 +45,18 @@ export function createVtsAdapter({
   let lastSceneKey = '';
   let parameterValues = [];
   let mouth = null;
+  let lastInjectionAt = Number.NEGATIVE_INFINITY;
+
+  function injectionPolicy() {
+    const state = desired?.state;
+    const scenes = desired?.context.scenes;
+    const scene = (scenes?.scenes ?? scenes)?.[state?.effective];
+    return {
+      allowed: Boolean(state && !state.deepSleep && (!state.asleep || scene?.holdPoseWhileAsleep === true)),
+      asleep: state?.asleep === true,
+      intervalMs: scene?.parameterRefreshMs ?? injectionIntervalMs
+    };
+  }
 
   function resetSession() {
     ready = false;
@@ -52,6 +64,7 @@ export function createVtsAdapter({
     lastSceneKey = '';
     parameterValues = [];
     mouth = null;
+    lastInjectionAt = Number.NEGATIVE_INFINITY;
     items.reset();
     catalog = { model: null, hotkeys: [], parameters: [], permissions: [] };
     capabilities = { hotkeys: false, parameters: false, items: false, modelDetection: false, processControl: false };
@@ -140,14 +153,18 @@ export function createVtsAdapter({
     }
   }
 
-  async function inject() {
-    if (injecting || refreshing || !ready || !capabilities.parameters || desired?.state.asleep) return;
-    const currentMouth = mouth;
+  async function inject({ force = false } = {}) {
+    const policy = injectionPolicy();
+    if (injecting || refreshing || !ready || !capabilities.parameters || !policy.allowed) return;
+    if (!force && Date.now() - lastInjectionAt < policy.intervalMs) return;
+    // While asleep, only the scene's fixed pose may be renewed, never speech.
+    const currentMouth = policy.asleep ? null : mouth;
     const currentParameters = parameterValues;
     const values = new Map(parameterValues.map((parameter) => [parameter.id, parameter]));
     if (currentMouth) values.set(currentMouth.id, currentMouth);
     if (!values.size) return;
     injecting = true;
+    lastInjectionAt = Date.now();
     const session = generation;
     try {
       await client.request('InjectParameterDataRequest', { mode: 'set', parameterValues: [...values.values()] });
@@ -172,7 +189,8 @@ export function createVtsAdapter({
         const session = generation;
         const { state, context } = desired;
         const plan = translateScene(state.effective, context, catalog, warnOnce);
-        const sceneKey = JSON.stringify([catalog.model?.modelID, state.effective, state.asleep, plan.hotkey, plan.parameters]);
+        const policy = injectionPolicy();
+        const sceneKey = JSON.stringify([catalog.model?.modelID, state.effective, state.asleep, plan.hotkey, plan.parameters, policy]);
         const isCurrent = () => ready && session === generation && currentRevision === revision;
         if (sceneKey !== lastSceneKey) {
           parameterValues = [];
@@ -187,8 +205,8 @@ export function createVtsAdapter({
           }
           if (!isCurrent()) continue;
           lastSceneKey = sceneKey;
-          parameterValues = state.asleep || hotkeyApplied ? [] : plan.parameters;
-          await inject();
+          parameterValues = !policy.allowed || hotkeyApplied ? [] : plan.parameters;
+          await inject({ force: true });
         }
         if (!isCurrent()) continue;
         await items.sync(state.asleep ? [] : state.props ?? [], context.assets ?? {}, capabilities.items, isCurrent);
@@ -251,11 +269,18 @@ export function createVtsAdapter({
   }
 
   function applyState(state, context = {}) {
+    const previous = desired?.state;
     desired = { state: structuredClone(state), context };
     revision += 1;
-    if (state.asleep) {
-      mouth = null;
+    // Cancel an old pose immediately, including while discovery/render is busy.
+    // An unrelated config reload must not erase an unchanged sleeping pose.
+    if (previous?.effective !== state.effective || previous?.asleep !== state.asleep || previous?.deepSleep !== state.deepSleep) {
       parameterValues = [];
+      lastSceneKey = '';
+      lastInjectionAt = Number.NEGATIVE_INFINITY;
+    }
+    if (state.asleep || previous?.asleep) {
+      mouth = null;
     }
     items.retry();
     return render();
@@ -266,7 +291,7 @@ export function createVtsAdapter({
     const binding = selectBinding(desired?.context.bindings, catalog.model);
     const result = translateParameters({ mouth: value }, binding, catalog.parameters, warnOnce);
     mouth = result[0] ?? null;
-    void inject();
+    void inject({ force: true });
   }
 
   async function disconnect() {

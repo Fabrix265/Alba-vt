@@ -77,7 +77,16 @@
       }
     },
     "sleep": {
-      "layer": "base"
+      "layer": "base",
+      "holdPoseWhileAsleep": true,
+      "parameterRefreshMs": 500,
+      "parameters": {
+        "eyeOpen": 0,
+        "eyeOpenRight": 0,
+        "mouth": 0,
+        "angleX": 12,
+        "angleZ": -18
+      }
     },
     "deep_sleep": {
       "layer": "base"

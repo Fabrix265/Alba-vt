@@ -132,7 +132,7 @@ Los nombres son tuyos: edita `config/commands.json` y listo. Sin instalación gl
 
 | Nivel | Qué hace | Cuándo usarlo |
 |---|---|---|
-| `sleep` | Escena de dormir; ignora eventos; VTube Studio y bridge siguen abiertos | Quieres usar el agente sin Alba reaccionando |
+| `sleep` | Mantiene la pose de dormir a baja frecuencia; ignora eventos y voz; VTube Studio y bridge siguen abiertos | Quieres usar el agente sin Alba reaccionando |
 | `deep_sleep` | Cierra VTS si el control está habilitado y confirmas; si no está configurado, pausa y avisa | Necesitas los recursos de la PC |
 | `wake` | Vuelve a `idle` desde cualquiera de los dos | — |
 
