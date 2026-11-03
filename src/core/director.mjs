@@ -20,6 +20,9 @@ export function createDirector({ scenes = {}, persona = {}, now = () => Date.now
   let asleep = false;
   let deepSleep = false;
   let lastActivityChangeAt = Number.NEGATIVE_INFINITY;
+  let lastTransientChangeAt = Number.NEGATIVE_INFINITY;
+  let pendingBackground = null;
+  let pendingTransient = null;
   let transientTimes = [];
 
   const store = createState(snapshot());
@@ -67,6 +70,7 @@ export function createDirector({ scenes = {}, persona = {}, now = () => Date.now
     }
 
     if (intent === 'wake') {
+      pendingBackground = pendingTransient = null;
       asleep = false;
       deepSleep = false;
       activity = null;
@@ -78,6 +82,7 @@ export function createDirector({ scenes = {}, persona = {}, now = () => Date.now
     }
 
     if (intent === 'sleep' || intent === 'deep_sleep') {
+      pendingBackground = pendingTransient = null;
       asleep = true;
       deepSleep = intent === 'deep_sleep';
       activity = null;
@@ -97,23 +102,29 @@ export function createDirector({ scenes = {}, persona = {}, now = () => Date.now
     const layer = scene.layer ?? 'activity';
 
     if (layer === 'transient') {
+      if (transient && transient.scene !== sceneId && at - lastTransientChangeAt < minStateDurationMs) {
+        pendingTransient = { intent: sceneId, props: requestedProps, dueAt: lastTransientChangeAt + minStateDurationMs };
+        return { applied: false, reason: 'min-duration', queued: true, state: store.get() };
+      }
+      pendingTransient = null;
       transientTimes = transientTimes.filter((timestamp) => at - timestamp < 60000);
       if (transientTimes.length >= maxTransientsPerMinute) {
         return { applied: false, reason: 'transient-limit', state: store.get() };
       }
       transientTimes.push(at);
-      const durationMs = scene.durationMs ?? TRANSIENT_DEFAULT_MS;
+      const durationMs = Math.max(minStateDurationMs, scene.durationMs ?? TRANSIENT_DEFAULT_MS);
       transient = { scene: sceneId, expiresAt: at + durationMs };
-    } else if (layer === 'activity') {
-      if (activity !== sceneId && at - lastActivityChangeAt < minStateDurationMs) {
-        return { applied: false, reason: 'min-duration', state: store.get() };
-      }
-      activity = sceneId;
-      lastActivityChangeAt = at;
+      lastTransientChangeAt = at;
     } else {
-      base = sceneId;
-      activity = null;
-      lastActivityChangeAt = at;
+      const background = activity ?? base;
+      if (background !== sceneId && at - lastActivityChangeAt < minStateDurationMs) {
+        pendingBackground = { intent: sceneId, props: requestedProps, dueAt: lastActivityChangeAt + minStateDurationMs };
+        return { applied: false, reason: 'min-duration', queued: true, state: store.get() };
+      }
+      pendingBackground = null;
+      if (layer === 'activity') activity = sceneId;
+      else { base = sceneId; activity = null; }
+      if (background !== sceneId) lastActivityChangeAt = at;
     }
 
     if (requestedProps) manualProps = requestedProps;
@@ -121,6 +132,20 @@ export function createDirector({ scenes = {}, persona = {}, now = () => Date.now
   }
 
   function tick(at = now()) {
+    // Keep only the latest deferred request per exclusive layer group.
+    // Sleep/wake clear both queues and always take effect immediately.
+    const backgroundDue = pendingBackground && at >= pendingBackground.dueAt;
+    const transientDue = pendingTransient && at >= pendingTransient.dueAt;
+    if (backgroundDue) {
+      const pending = pendingBackground;
+      pendingBackground = null;
+      applyIntent(pending.intent, { props: pending.props, now: at });
+    }
+    if (transientDue) {
+      const pending = pendingTransient;
+      pendingTransient = null;
+      applyIntent(pending.intent, { props: pending.props, now: at });
+    }
     if (transient && at >= transient.expiresAt) {
       transient = null;
       return publish(at);

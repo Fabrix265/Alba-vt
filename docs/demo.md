@@ -31,3 +31,9 @@ coinciden. Hay cooldowns y debounce; los contadores se reinician cuando disparan
 Las condiciones `when.state` admiten asleep, deepSleep, effective, base y activity
 (incluido null). Por ejemplo, sesion-inicio exige asleep=false. El estado procede
 del director, independientemente del cliente que envie el evento.
+
+El director aplica minStateDurationMs a los cambios de base/actividad y al
+reemplazo de un transiente. Conserva la ultima peticion aplazada por grupo y la
+aplica en tick: un session.idle rapido no deja a Alba atascada en coding. Los
+transientes duran al menos ese minimo y mantienen prioridad sobre el fondo;
+sleep/wake son inmediatos y descartan las peticiones aplazadas.
