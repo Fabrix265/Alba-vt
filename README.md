@@ -4,13 +4,13 @@
 
 Alba es un personaje 2D (Live2D, renderizado por [VTube Studio](https://denchisoft.com/)) que reacciona en tiempo real a lo que hace tu agente: se pone a teclear cuando programa, se enoja o se pone triste cuando hay errores, celebra cuando termina, y se va a dormir cuando se lo pides. No es un chatbot aparte: es la cara del agente que ya usas.
 
-> **Estado:** en desarrollo (Fase 0), hasta el **Paso 4: Doctor** implementado. `npm start` conecta con VTS y `npm run doctor` diagnostica la instalacion; clientes y demo siguen pendientes en los pasos 5–6. Proyecto no oficial: no está afiliado a VTube Studio, Live2D, opencode ni Anthropic.
+> **Estado:** implementados los pasos 1–6 de Fase 0, con comprobaciones manuales pendientes antes de darla por validada. Incluye bridge, VTS, doctor, plugin de opencode, CLI, HTTP, MCP por stdio sin SDK y demo. Consulta la [revisión de Fase 0](docs/phase-0-review.md). Proyecto no oficial: no está afiliado a VTube Studio, Live2D, opencode ni Anthropic.
 
 ## Qué hace
 
 - **Reacciona a tu agente.** Eventos como "ejecutando un comando", "editando un archivo" o "error" se convierten en expresiones, movimientos y objetos en pantalla.
 - **Tranquila por diseño.** Cooldowns, duraciones mínimas y *debounce* evitan que parpadee con cada evento.
-- **Dormir y despertar.** `sleep` la pausa con VTube Studio abierto; `deep_sleep` cierra VTube Studio para liberar recursos.
+- **Dormir y despertar.** `sleep` la pausa con VTube Studio abierto; `deep_sleep` puede cerrar VTube Studio si habilitas el control de procesos y confirmas esa operación. Por defecto se degrada a `sleep`.
 - **Todo es configuración.** Comportamientos, comandos, props y modelos se agregan editando JSON, con recarga en caliente. No hay que tocar código.
 - **Cambia de avatar.** Cada modelo tiene sus propios *bindings*; si le falta una expresión, Alba degrada con parámetros estándar en vez de romperse.
 - **Agnóstico al agente.** El núcleo no sabe quién le habla. Hoy: opencode. Pensado para Claude Code, Codex y cualquier cosa que pueda hacer un POST.
@@ -72,8 +72,11 @@ La primera vez, VTube Studio mostrará un popup pidiendo aprobar el plugin: acé
 
 ```bash
 npm start      # arranca el bridge
-npm run demo   # eventos de prueba: idle → thinking → coding → celebrate → idle
+npm run demo   # en otra terminal: idle → thinking → coding → celebrate → idle
+npm run demo -- --fake   # sin bridge, VTS ni conexiones; reloj acelerado
 ```
+
+La [demo](docs/demo.md) envía eventos, respeta los tiempos del director y funciona sin PNG. Si VTS está desconectado, muestra los estados del bridge; para comprobar la animación debes tener VTS conectado.
 
 ## Configuración
 
@@ -87,7 +90,9 @@ npm run demo   # eventos de prueba: idle → thinking → coding → celebrate �
 | `VTS_AUTH_TOKEN` | Token de plugin (se rellena solo tras aprobar el popup) | vacío |
 | `ALBA_BRIDGE_PORT` | Puerto del bridge (solo loopback) | `8790` |
 | `ALBA_TOKEN` | Token que deben enviar los clientes en `X-Alba-Token` | generado por ti |
-| `VTS_LAUNCH_COMMAND` | Cómo reabrir VTube Studio al despertar de `deep_sleep` | vacío |
+| `VTS_PROCESS_CONTROL` | Habilitar cierre/lanzamiento, siempre con confirmación por operación | `false` |
+| `VTS_CLOSE_COMMAND` | Array JSON de ejecutable y argumentos para cerrar exclusivamente VTS, sin shell | vacío |
+| `VTS_LAUNCH_COMMAND` | Array JSON de ejecutable y argumentos de un launcher que regresa al abrir VTS | vacío |
 
 ### Archivos de `config/` (recarga en caliente)
 
@@ -97,13 +102,13 @@ Si un JSON queda inválido, se conserva la última configuración válida y se r
 |---|---|
 | `persona.json` | Nombre y carácter de Alba, umbrales de "tranquilidad" |
 | `scenes.json` | Escenas: qué intención activa qué expresión, movimiento y props |
-| `rules.json` | Reglas evento → intención, con cooldown, debounce y contadores por ventana de tiempo |
+| `rules.json` | Reglas evento → intención, con cooldown, debounce, contadores y condiciones `when.state` |
 | `bindings.json` | Mapa intención → hotkeys/parámetros, **por modelo** (con entrada `default`) |
 | `assets.json` | Registro de recursos por id (PNG de props, y más tipos a futuro) |
 | `commands.json` | Comandos del CLI `alba`: frase → intención |
 | `schemas/` | JSON Schemas para validar y autocompletar los archivos anteriores |
 
-Referencia completa en [`docs/config-reference.md`](docs/config-reference.md).
+Los schemas describen los campos admitidos; las reglas iniciales se explican en [`docs/demo.md`](docs/demo.md). La referencia completa de configuración queda para la fase final.
 
 ## Uso
 
@@ -121,24 +126,24 @@ alba hello         # saludo
 alba list          # muestra todos los comandos disponibles
 ```
 
-Los nombres son tuyos: edita `config/commands.json` y listo. Para tener `alba` disponible globalmente: `npm link` (modifica tu entorno fuera del proyecto, hazlo a conciencia).
+Los nombres son tuyos: edita `config/commands.json` y listo. Sin instalación global, usa `npm run alba -- good night` o `node clients/cli/alba.mjs good night`; sustituye la frase por cualquiera de la tabla. Para tener `alba` globalmente, `npm link` requiere aprobación aparte porque modifica el entorno fuera del proyecto. Consulta [`clients/cli/README.md`](clients/cli/README.md).
 
 ### Dormir y despertar
 
 | Nivel | Qué hace | Cuándo usarlo |
 |---|---|---|
 | `sleep` | Escena de dormir; ignora eventos; VTube Studio y bridge siguen abiertos | Quieres usar el agente sin Alba reaccionando |
-| `deep_sleep` | Además cierra VTube Studio | Necesitas los recursos de la PC |
+| `deep_sleep` | Cierra VTS si el control está habilitado y confirmas; si no está configurado, pausa y avisa | Necesitas los recursos de la PC |
 | `wake` | Vuelve a `idle` desde cualquiera de los dos | — |
 
-Para despertar desde `deep_sleep`, configura `VTS_LAUNCH_COMMAND` (ruta del ejecutable o URL de Steam). Si no está configurado, `alba ring ring` te pedirá abrir VTube Studio a mano y Alba reconectará sola.
+El control de procesos está desactivado por defecto. Para habilitarlo configura `VTS_PROCESS_CONTROL=true` y `VTS_CLOSE_COMMAND`. Los comandos son arrays JSON de ejecutable y argumentos en `.env`, sin interpretación de shell. `VTS_LAUNCH_COMMAND` es opcional: al despertar desde `deep_sleep`, lanzar VTS también exige confirmación. Sin launcher, `alba ring ring` avisa que abras VTS a mano y Alba reconecta cuando aparezca. No se aceptan rutas o URLs sueltas como comandos; una URL debe ser argumento de un launcher configurado por el usuario.
 
 ### Conectar tu agente
 
-> Las instrucciones exactas de instalación de cada cliente se completan en el Paso 5 del plan de desarrollo.
+El proyecto incluye el cargador local `.opencode/plugins/alba.js` y `opencode.json` para el servidor MCP. Se activan al iniciar opencode desde la raíz; no hace falta instalar paquetes globales. Reinicia el bridge después de actualizar código; los JSON sí se recargan en caliente.
 
-- **opencode:** el plugin de `clients/opencode/` reenvía `tool.execute.before/after` y `session.idle` al bridge.
-- **MCP:** `clients/mcp/` expone `avatar_status`, `avatar_say`, `avatar_scene`, `avatar_hotkey`, `avatar_sleep` y `avatar_wake`. Son voluntarias: el agente solo las usa si se lo indicas (por ejemplo, en tu `AGENTS.md`).
+- **opencode:** el [plugin](clients/opencode/README.md) reenvía `tool.execute.before/after` y `session.idle` al bridge sin argumentos ni salidas privadas.
+- **MCP:** el [servidor por stdio](clients/mcp/README.md) expone `avatar_status`, `avatar_say`, `avatar_scene`, `avatar_hotkey`, `avatar_sleep` y `avatar_wake`, sin dependencias nuevas. Son voluntarias: el agente solo las usa si se lo indicas. Las llamadas reales desde el agente quedan pendientes de [verificación manual](docs/integration-validation.md).
 - **HTTP:** cualquier cosa que haga POST. Ejemplos en [`clients/http/examples.md`](clients/http/examples.md).
 
 ```bash
@@ -152,10 +157,12 @@ Endpoints: `POST /event`, `POST /intent`, `GET /state`, `GET /stream` (SSE).
 
 ## Personalizar
 
-- **Cambiar de modelo:** carga otro en VTube Studio y añade su entrada en `config/bindings.json`. Guía: [`docs/adding-a-model.md`](docs/adding-a-model.md).
-- **Agregar un comando:** una línea en `config/commands.json`. Guía: [`docs/adding-a-command.md`](docs/adding-a-command.md).
-- **Agregar un prop o recurso:** suelta el PNG en `assets/props/` y registra su id en `config/assets.json`. Si el archivo falta, el recurso simplemente no aparece. Guía: [`docs/adding-an-asset.md`](docs/adding-an-asset.md).
-- **Agregar un cliente nuevo:** basta con traducir sus eventos al esquema canónico. Guía: [`docs/adding-a-client.md`](docs/adding-a-client.md).
+- **Cambiar de modelo:** carga otro en VTube Studio y añade su entrada en `config/bindings.json`. Consulta los [bindings del adapter](docs/vts-adapter.md).
+- **Agregar un comando:** añade una entrada en `config/commands.json` según su schema.
+- **Agregar un prop o recurso:** coloca el PNG en `assets/props/` y registra su id en `config/assets.json`. Si falta, se omite con un aviso por causa.
+- **Agregar un cliente nuevo:** traduce sus eventos al esquema canónico; el cliente HTTP compartido está en `clients/http/client.mjs`.
+
+Las guías completas de extensión permanecen reservadas para la fase final.
 
 ## Solución de problemas
 
@@ -165,7 +172,7 @@ Endpoints: `POST /event`, `POST /intent`, `GET /state`, `GET /stream` (SSE).
 | No aparece el popup de autorización | VTube Studio sin foco o popup oculto | Reintenta `npm run doctor` con VTube Studio en primer plano |
 | Una intención no hace nada | El modelo no tiene ese hotkey | Revisa `doctor` y añade el binding de ese modelo |
 | El teclado o la taza no aparecen | Falta el PNG o el permiso de items | `doctor` lista qué falta; sin ellos todo lo demás funciona |
-| Alba parpadea con cada comando | Reglas sin cooldown | Sube `cooldown` o `debounce` en `rules.json` |
+| Alba parpadea con cada comando | Reglas sin cooldown | Sube `cooldownMs` o `debounceMs` en `rules.json` |
 | VTube Studio cerrado | — | El bridge sigue vivo y registra la degradación; Alba vuelve al reabrirlo |
 
 ## Estructura del proyecto

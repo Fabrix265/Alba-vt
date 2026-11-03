@@ -8,7 +8,7 @@ Para trabajar sin VTS, configura `ALBA_ADAPTER=fake` en `.env`. `VTS_PORT` y `AL
 
 ## Modelos y parámetros
 
-El adapter consulta el modelo, los hotkeys, los parámetros de entrada y los permisos al conectar, y refresca estos datos cada 2 segundos. `getStatus()` expone ese inventario sin tokens, preparado para el doctor del Paso 4.
+El adapter consulta el modelo, los hotkeys, los parámetros de entrada y los permisos al conectar, y refresca estos datos cada 2 segundos. `getStatus()` expone ese inventario sin tokens en el estado del bridge. El doctor consulta VTS directamente y también muestra ese inventario.
 
 En `config/bindings.json`:
 
@@ -35,6 +35,6 @@ Los props se cargan por id de `assets.json` y se retiran por el ID de su instanc
 
 `npm test` incluye un servidor WebSocket local que simula VTS: autenticación, correlación de respuestas, timeouts, reconexión, cambios de modelo, hotkeys, parámetros, permisos y carga/retirada de props. Las pruebas no requieren el VTS real ni usan su token.
 
-Este paso no implementa el doctor (Paso 4), los clientes/CLI (Paso 5), la demo (Paso 6) ni el control de procesos. `deep_sleep` por ahora pausa a Alba y avisa que el cierre de VTS no está implementado. El adapter declara `processControl: false`.
+Doctor, clientes y demo están implementados. El cierre/lanzamiento vive en `src/platform/vts-process.mjs`, desactivado por defecto y sujeto a confirmación por operación. El adapter VTS declara `processControl: false` porque no gestiona procesos; `/state.processControl` indica las operaciones habilitadas en la capa de plataforma. Sin control configurado, `deep_sleep` degrada a `sleep` y explica que VTS sigue abierto. Consulta el [CLI](../clients/cli/README.md) y la [revisión de Fase 0](phase-0-review.md).
 
 Referencia del protocolo: [API oficial de VTube Studio](https://github.com/DenchiSoft/VTubeStudio), [permisos](https://github.com/DenchiSoft/VTubeStudio/tree/master/Permissions).

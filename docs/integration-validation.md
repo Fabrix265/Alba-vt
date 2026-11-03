@@ -1,6 +1,6 @@
 # Validacion local de Fase 0
 
-Comprobado el 3 de noviembre de 2026:
+Comprobaciones anteriores al cierre del Paso 6, el 3 de noviembre de 2026:
 
 - `npm run doctor` contra **VTube Studio real**, API 8001: autenticado, token
   guardado, modelo Akari, 7 hotkeys y 127 parametros. Avisos: faltan keyboard/mug
@@ -19,6 +19,12 @@ Comprobado el 3 de noviembre de 2026:
 - Las pruebas automaticas usan fake y un servidor WebSocket que simula VTS.
   Tambien arrancan el proceso MCP real por stdio y ejercitan las seis tools contra
   HTTP de prueba. No sustituyen la comprobacion contra VTS real descrita arriba.
+
+En las **dos ultimas ejecuciones** del cierre posterior del Paso 6, doctor **no
+pudo conectar a VTS**, incluida la repeticion fuera del sandbox. La demo completo los cinco estados con fake y con
+el bridge existente, que anuncio VTS desconectado. Por tanto, aquel doctor OK es
+evidencia historica, no el estado actual. No se ejecutaron opencode ni npm test
+en este cierre. La [revision de Fase 0](phase-0-review.md) detalla los pendientes.
 
 Opencode genera su propio package.json/node_modules ignorado dentro de
 `.opencode/` al cargar plugins locales. Esa cache pertenece a opencode; Alba
