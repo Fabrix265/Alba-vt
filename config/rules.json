@@ -13,9 +13,16 @@
       "id": "errores-sad",
       "when": { "type": "error" },
       "intent": "sad",
-      "priority": 10,
+      "priority": 30,
       "cooldownMs": 30000,
       "window": { "count": 3, "ms": 120000 }
+    },
+    {
+      "id": "error-inicial",
+      "when": { "type": "error" },
+      "intent": "error",
+      "cooldownMs": 2500,
+      "debounceMs": 500
     },
     {
       "id": "herramienta-codigo",
@@ -42,13 +49,15 @@
       "when": { "type": "session.idle" },
       "intent": "idle",
       "cooldownMs": 2000,
-      "debounceMs": 800
+      "debounceMs": 800,
+      "args": { "props": [] }
     },
     {
       "id": "sesion-inicio",
-      "when": { "type": "session.start" },
+      "when": { "type": "session.start", "state": { "asleep": false } },
       "intent": "thinking",
-      "cooldownMs": 5000
+      "cooldownMs": 5000,
+      "debounceMs": 500
     },
     {
       "id": "fin-exitoso",

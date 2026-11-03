@@ -29,7 +29,18 @@
         "tool": { "$ref": "#/$defs/stringOrList" },
         "source": { "$ref": "#/$defs/stringOrList" },
         "ok": { "type": "boolean" },
-        "textIncludes": { "type": "string" }
+        "textIncludes": { "type": "string" },
+        "state": {
+          "type": "object",
+          "properties": {
+            "asleep": { "type": "boolean" },
+            "deepSleep": { "type": "boolean" },
+            "effective": { "$ref": "#/$defs/stringOrList" },
+            "base": { "$ref": "#/$defs/stringOrList" },
+            "activity": { "anyOf": [{ "$ref": "#/$defs/stringOrList" }, { "type": "null" }] }
+          },
+          "additionalProperties": false
+        }
       },
       "additionalProperties": false
     },

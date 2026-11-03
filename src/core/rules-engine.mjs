@@ -2,12 +2,15 @@ function asArray(value) {
   return Array.isArray(value) ? value : [value];
 }
 
-function matchesWhen(when, event) {
+function matchesWhen(when, event, state) {
   if (!when) return true;
   if (when.type !== undefined && !asArray(when.type).includes(event.type)) return false;
   if (when.tool !== undefined && !asArray(when.tool).includes(event.tool)) return false;
   if (when.source !== undefined && !asArray(when.source).includes(event.source)) return false;
   if (when.ok !== undefined && when.ok !== event.ok) return false;
+  for (const [field, expected] of Object.entries(when.state ?? {})) {
+    if (!asArray(expected).includes(state[field])) return false;
+  }
   if (when.textIncludes !== undefined) {
     const haystack = (event.text ?? '').toLowerCase();
     if (!haystack.includes(String(when.textIncludes).toLowerCase())) return false;
@@ -26,10 +29,10 @@ export function createRulesEngine({ rules = [], now = () => Date.now() } = {}) {
 
   list.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0) || a._order - b._order);
 
-  function evaluate(event, at = now()) {
+  function evaluate(event, at = now(), state = {}) {
     let fired = null;
     for (const rule of list) {
-      if (!matchesWhen(rule.when, event)) continue;
+      if (!matchesWhen(rule.when, event, state)) continue;
 
       const debounceMs = rule.debounceMs ?? 0;
       if (at - rule._lastEventAt < debounceMs) continue;

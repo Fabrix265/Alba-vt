@@ -36,7 +36,7 @@ export function createApp({ config: initial, adapter, processControl, now = Date
         const result = speech.speak({ text: event.text ?? '' });
         return { event, speech: { durationMs: result.durationMs, synthetic: result.synthetic }, decision: null };
       }
-      const decision = rules.evaluate(event);
+      const decision = rules.evaluate(event, now(), director.getState());
       // Automatic rules can pause Alba, but cannot authorize process operations.
       if (decision?.intent === 'deep_sleep') return { event, decision, ignored: true, reason: 'confirmation-required' };
       const applied = decision ? director.applyIntent(decision.intent, { props: decision.args?.props }) : null;
