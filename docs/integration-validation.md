@@ -47,3 +47,16 @@ recupero los ojos abiertos y la postura normal. Las capturas de comprobacion
 quedaron en assets/ ignorado, fuera del commit. No se ejecutaron tests ni opencode,
 ni se cerro VTS. Los eventos del agente siguen ignorados durante sleep por el
 guard existente del core; no se ejecuto una prueba automatica de ese guard.
+
+## Comprobacion posterior de los comandos de expresion
+
+Se corrigio la deteccion del archivo principal para que la CLI arranque tambien
+desde el enlace global de npm ya existente; no se modifico la instalacion global.
+`node --check` paso en clients/cli/alba.mjs y src/environment.mjs. Contra el bridge
+VTS conectado, `alba hotkeys` mostro los siete hotkeys de Akari con nombre e ID,
+incluido uno sin nombre. `alba list` mostro los comandos recargados desde JSON.
+Se ejecutaron `alba ring ring`, `alba amor`, `alba sacudida` y `alba reset`:
+devolvieron idle, celebrate, shake y reset. Una consulta posterior al bridge
+confirmo el regreso automatico a idle tras amor y tras reset, con VTS conectado.
+Esta comprobacion verifica comandos y estado; no certifica visualmente todas
+las expresiones. No se ejecutaron pruebas, opencode ni operaciones de procesos.

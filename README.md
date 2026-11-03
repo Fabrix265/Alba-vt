@@ -123,10 +123,19 @@ alba tea time      # modo descanso, con taza
 alba oops          # reacción de error
 alba cheer         # celebración
 alba hello         # saludo
+alba llorar        # Eyes Cry; alias: drama
+alba enojo         # Angry Sign; alias: grrr
+alba amor          # Heart Eyes; alias: flechazo
+alba susto         # Shock Sign; alias: buu
+alba sacudida      # Anim Shake; alias: gelatina
+alba reset         # Remove Expressions; respeta sleep y las duraciones mínimas
 alba list          # muestra todos los comandos disponibles
+alba hotkeys       # nombre e ID de los hotkeys del modelo cargado
 ```
 
 Los nombres son tuyos: edita `config/commands.json` y listo. Sin instalación global, usa `npm run alba -- good night` o `node clients/cli/alba.mjs good night`; sustituye la frase por cualquiera de la tabla. Para tener `alba` globalmente, `npm link` requiere aprobación aparte porque modifica el entorno fuera del proyecto. Consulta [`clients/cli/README.md`](clients/cli/README.md).
+
+El [catálogo completo y la guía para añadir comandos](docs/adding-a-command.md) explican cómo crear alias, elegir un hotkey y configurar la duración. Las escenas temporales vuelven a la actividad anterior; para que terminen en idle y limpien la expresión, comienza con `alba ring ring`. `reset` limpia expresiones; `ring ring` además cancela actividades y props y despierta a Alba.
 
 ### Dormir y despertar
 
@@ -162,7 +171,7 @@ Endpoints: `POST /event`, `POST /intent`, `GET /state`, `GET /stream` (SSE).
 - **Agregar un prop o recurso:** coloca el PNG en `assets/props/` y registra su id en `config/assets.json`. Si falta, se omite con un aviso por causa.
 - **Agregar un cliente nuevo:** traduce sus eventos al esquema canónico; el cliente HTTP compartido está en `clients/http/client.mjs`.
 
-Las guías completas de extensión permanecen reservadas para la fase final.
+La [guía para añadir comandos](docs/adding-a-command.md) ya está disponible. Las demás guías completas de extensión permanecen reservadas para la fase final.
 
 ## Solución de problemas
 

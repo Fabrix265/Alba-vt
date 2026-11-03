@@ -35,6 +35,50 @@
     "cheer": {
       "intent": "celebrate",
       "description": "Celebracion"
+    },
+    "llorar": {
+      "intent": "sad",
+      "description": "Eyes Cry; escena de 4 segundos"
+    },
+    "drama": {
+      "intent": "sad",
+      "description": "Modo telenovela; alias de llorar"
+    },
+    "enojo": {
+      "intent": "angry",
+      "description": "Angry Sign; escena de 2.5 segundos"
+    },
+    "grrr": {
+      "intent": "angry",
+      "description": "Gruñido visual; alias de enojo"
+    },
+    "amor": {
+      "intent": "celebrate",
+      "description": "Heart Eyes; escena de 3 segundos"
+    },
+    "flechazo": {
+      "intent": "celebrate",
+      "description": "Cupido paso por aqui; alias de amor"
+    },
+    "susto": {
+      "intent": "error",
+      "description": "Shock Sign; escena de 2.5 segundos"
+    },
+    "buu": {
+      "intent": "error",
+      "description": "Susto de bolsillo; alias de susto"
+    },
+    "sacudida": {
+      "intent": "shake",
+      "description": "Activa Anim Shake; escena de 3 segundos"
+    },
+    "gelatina": {
+      "intent": "shake",
+      "description": "A temblar; alias de sacudida"
+    },
+    "reset": {
+      "intent": "reset",
+      "description": "Quita expresiones; respeta sleep y la duracion minima"
     }
   }
 }

@@ -76,6 +76,27 @@
         "smile": 0
       }
     },
+    "shake": {
+      "layer": "transient",
+      "durationMs": 3000,
+      "description": "Sacudida; sin hotkey usa una pose inclinada",
+      "parameters": {
+        "angleX": -8,
+        "angleZ": 12
+      }
+    },
+    "reset": {
+      "layer": "transient",
+      "durationMs": 1200,
+      "hotkey": "idle",
+      "description": "Limpia expresiones y vuelve a la actividad anterior",
+      "parameters": {
+        "angleX": 0,
+        "angleY": 0,
+        "angleZ": 0,
+        "smile": 0.15
+      }
+    },
     "sleep": {
       "layer": "base",
       "holdPoseWhileAsleep": true,
