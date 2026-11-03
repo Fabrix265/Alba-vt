@@ -8,6 +8,12 @@ agent.md
 # Dependencias
 node_modules/
 
+# Solo el cargador local de Alba; nunca la cache generada por opencode
+.opencode/*
+!.opencode/plugins/
+.opencode/plugins/*
+!.opencode/plugins/alba.js
+
 # Arte de terceros (repo público, MIT)
 assets/*
 !assets/models/
