@@ -14,10 +14,34 @@ export async function runCli(args, { client = createBridgeClient(), write = cons
   const yes = args.includes('--yes');
   const phrase = args.filter((arg) => arg !== '--yes').join(' ').trim();
   if (!phrase || phrase === '--help' || phrase === 'help') {
-    write('Uso: alba <frase> [--yes] | alba list\nLocal: npm run alba -- <frase>\n--yes: solo cuando el usuario autoriza expresamente esta operacion.');
+    write('Uso: alba <frase> [--yes] | alba list | alba hotkeys\nLocal: npm run alba -- <frase>\n--yes: solo cuando el usuario autoriza expresamente esta operacion.');
     return 0;
   }
   const { state } = await client.state();
+  if (phrase === 'hotkeys') {
+    const adapter = state.adapter;
+    if (adapter?.name !== 'vts') {
+      write('Hotkeys no disponibles: el bridge no esta usando el adapter VTS.');
+      return 1;
+    }
+    if (!adapter.connected) {
+      write('VTS desconectado: comprueba que este abierto y con la API activa.');
+      return 1;
+    }
+    if (!adapter.model?.modelLoaded) {
+      write('No hay un modelo cargado en VTS.');
+      return 1;
+    }
+    write(`Modelo: ${adapter.model.modelName} (${adapter.model.modelID})`);
+    const hotkeys = adapter.hotkeys ?? [];
+    if (!hotkeys.length) {
+      write('El bridge no tiene hotkeys disponibles para este modelo.');
+      return 0;
+    }
+    write('Nombre | ID');
+    for (const hotkey of hotkeys) write(`${hotkey.name?.trim() || '(sin nombre)'} | ${hotkey.hotkeyID}`);
+    return 0;
+  }
   if (phrase === 'list') {
     for (const [name, entry] of Object.entries(state.commands)) write(`${name} -> ${entry.intent}${entry.confirm ? ' [confirmacion]' : ''} | ${entry.description ?? ''}`);
     return 0;

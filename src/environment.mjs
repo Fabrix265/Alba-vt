@@ -15,5 +15,11 @@ export function readEnvironment({ rootDir = projectRoot, env = process.env } = {
 }
 
 export function isMain(metaUrl) {
-  return Boolean(process.argv[1]) && path.resolve(process.argv[1]) === fileURLToPath(metaUrl);
+  if (!process.argv[1]) return false;
+  try {
+    // npm links may start the CLI through a different path to the same file.
+    return fs.realpathSync(process.argv[1]) === fs.realpathSync(fileURLToPath(metaUrl));
+  } catch {
+    return false;
+  }
 }
