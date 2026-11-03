@@ -4,7 +4,7 @@
 
 Alba es un personaje 2D (Live2D, renderizado por [VTube Studio](https://denchisoft.com/)) que reacciona en tiempo real a lo que hace tu agente: se pone a teclear cuando programa, se enoja o se pone triste cuando hay errores, celebra cuando termina, y se va a dormir cuando se lo pides. No es un chatbot aparte: es la cara del agente que ya usas.
 
-> **Estado:** en desarrollo (Fase 0), hasta el **Paso 3: adapter VTS** implementado. `npm start` ya conecta con VTS; `doctor`, clientes y demo siguen pendientes en los pasos 4–6. Proyecto no oficial: no está afiliado a VTube Studio, Live2D, opencode ni Anthropic.
+> **Estado:** en desarrollo (Fase 0), hasta el **Paso 4: Doctor** implementado. `npm start` conecta con VTS y `npm run doctor` diagnostica la instalacion; clientes y demo siguen pendientes en los pasos 5–6. Proyecto no oficial: no está afiliado a VTube Studio, Live2D, opencode ni Anthropic.
 
 ## Qué hace
 
@@ -58,7 +58,7 @@ cp .env.example .env      # en Windows (cmd): copy .env.example .env
 
 ### 2. Verificar y autorizar
 
-En el estado actual, ejecuta `npm start` para autorizar Alba y guardar el token. La guía del adapter está en [`docs/vts-adapter.md`](docs/vts-adapter.md). El comando `doctor` descrito abajo se implementará en el Paso 4.
+Ejecuta `npm run doctor` para verificar la instalacion y autorizar Alba. Usa `npm run doctor -- --json` si necesitas el informe estructurado. Los avisos sobre PNG o permisos opcionales no impiden usarla; los errores devuelven un codigo de salida distinto de cero.
 
 ```bash
 npm run doctor
