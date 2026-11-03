@@ -57,11 +57,8 @@ export function createAssetRegistry({ assets = {}, rootDir, capabilities, logger
   }
 
   function report() {
-    const absent = missing();
-    if (absent.length > 0) {
-      logger.warnOnce('assets-report', `recursos ausentes: ${absent.join(', ')}`);
-    }
-    return { available: available(), missing: absent };
+    // resolve() already reports each cause once; avoid a second summary warning.
+    return { available: available(), missing: missing() };
   }
 
   return { resolve, list, missing, available, report };

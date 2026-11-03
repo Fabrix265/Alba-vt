@@ -31,8 +31,12 @@ export function createVtsItems({ client, rootDir, warn }) {
       const signature = JSON.stringify(asset);
       const failureKey = `${id}:${signature}`;
       if (loaded.has(id) || failed.has(failureKey)) continue;
-      if (!asset || asset.type !== 'item') {
-        warn(`asset:${id}`, `VTS: recurso ${id} ausente o de tipo no soportado`);
+      if (!asset) {
+        warn(`asset-unknown:${id}`, `recurso desconocido: ${id}`);
+        continue;
+      }
+      if (asset.type !== 'item') {
+        warn(`asset-type:${asset.type}`, `tipo de recurso no soportado todavia: ${asset.type} (${id})`);
         continue;
       }
       try {
@@ -64,10 +68,11 @@ export function createVtsItems({ client, rootDir, warn }) {
         loaded.set(id, { instanceID: result.instanceID, signature });
         // A state change during the load must not leave a stale prop on screen.
         if (!isCurrent()) await unload(id, loaded.get(id));
-      } catch {
+      } catch (error) {
         if (!isCurrent()) return;
         failed.add(failureKey);
-        warn(`item-load:${id}`, `VTS: no se pudo cargar el prop ${id}; revisa archivo, formato y permisos`);
+        if (error.code === 'ENOENT') warn(`asset-missing:${id}`, `falta el archivo del recurso ${id}: ${asset.file}`);
+        else warn(`item-load:${id}`, `VTS: no se pudo cargar el prop ${id}; revisa archivo, formato y permisos`);
       }
     }
   }

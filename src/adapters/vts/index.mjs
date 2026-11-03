@@ -3,7 +3,7 @@ import { createVtsClient } from './client.mjs';
 import { createVtsAuth } from './auth.mjs';
 import { createVtsItems } from './items.mjs';
 import { translateScene, translateParameters, selectBinding } from './translate.mjs';
-import { log, warn } from '../../core/log.mjs';
+import { log, warnOnce as logWarnOnce } from '../../core/log.mjs';
 
 export function reconnectDelay(attempt, baseMs, maxMs) {
   return Math.min(maxMs, baseMs * 2 ** Math.min(attempt, 30));
@@ -11,7 +11,7 @@ export function reconnectDelay(attempt, baseMs, maxMs) {
 
 export function createVtsAdapter({
   port, rootDir, envPath = path.join(rootDir, '.env'), token,
-  client = createVtsClient({ port }), logger = { log, warn },
+  client = createVtsClient({ port }), logger = { log, warnOnce: logWarnOnce },
   reconnectBaseMs = 500, reconnectMaxMs = 30000,
   refreshIntervalMs = 2000, injectionIntervalMs = 250,
   requestItemPermission = false, authTimeoutMs = 60000
@@ -20,8 +20,8 @@ export function createVtsAdapter({
   const warnOnce = (key, message) => {
     if (seen.has(key)) return;
     seen.add(key);
-    if (logger.warn) logger.warn(message);
-    else logger.warnOnce?.(key, message);
+    if (logger.warnOnce) logger.warnOnce(key, message);
+    else logger.warn?.(message);
   };
   const auth = createVtsAuth({ envPath, token, timeoutMs: authTimeoutMs, logger });
   const items = createVtsItems({ client, rootDir, warn: warnOnce });
