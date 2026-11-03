@@ -1,0 +1,24 @@
+{
+  "name": "alba-vt",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Presencia VTuber 2D para agentes de codigo",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=24"
+  },
+  "bin": {
+    "alba": "clients/cli/alba.mjs"
+  },
+  "scripts": {
+    "start": "node src/index.mjs",
+    "doctor": "node scripts/doctor.mjs",
+    "demo": "node scripts/demo.mjs",
+    "test": "node --test \"test/**/*.test.mjs\""
+  },
+  "dependencies": {
+    "dotenv": "^18.0.9",
+    "ws": "^8.22.1"
+  }
+}
