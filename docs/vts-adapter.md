@@ -19,7 +19,7 @@ En `config/bindings.json`:
 
 Los valores de respaldo viven en `scenes.json → scenes → <intención> → parameters`, usando los alias del binding. Si hay un hotkey disponible, se ejecuta una vez por cambio de escena. Si falta o falla, se aplican los parámetros configurados; si no hay respaldo, se usan los parámetros de `idle`. Los valores se limitan al rango que anuncia VTS y se refrescan cada 250 ms mientras esté despierta.
 
-Los bindings iniciales usan entradas estándar verificadas y `akari.celebrate → Anim Shake`. En otros modelos solo se usan los parámetros anunciados por VTS. Los hotkeys de tipo toggle conservan el comportamiento de VTS: al configurar expresiones con ellos, configura también una acción de salida/restablecimiento en la escena siguiente.
+Los bindings de Akari usan los IDs verificados por el doctor: `sad → Eyes Cry`, `angry → Angry Sign`, `celebrate → Heart Eyes`, `error → Shock Sign` e `idle → Remove Expressions`. Se mantienen los parámetros de respaldo de las escenas y los alias heredados de `default`. En otros modelos solo se usan los parámetros anunciados por VTS. Las cuatro expresiones son toggles: al entrar en `idle` se ejecuta Remove Expressions; volver a una actividad como `coding` no las limpia por sí solo.
 
 `say` usa el lip-sync sintético del core y el alias `mouth`. `sleep` detiene los frames, retira los props e ignora eventos, incluida la voz. La escena de sueño puede ejecutar un hotkey configurado; sin ese hotkey, VTS recupera su tracking normal al dejar de recibir parámetros. `wake` vuelve a idle.
 

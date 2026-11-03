@@ -19,7 +19,11 @@
         "akari"
       ],
       "hotkeys": {
-        "celebrate": "Anim Shake"
+        "sad": "f5538e98e4544444979c8035d44fa3ab",
+        "angry": "91a97d4bbe9744d3a8d1e9e81bec9c7d",
+        "celebrate": "3ae6af14da9541bdbf02f5e384e53758",
+        "error": "88cd3a891346404197f400a4a38ad33e",
+        "idle": "50fac8918280405ea1c6dbc319c73f16"
       },
       "parameters": {}
     }
