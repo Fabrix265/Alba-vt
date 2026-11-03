@@ -64,6 +64,35 @@ test('rechaza peticiones con Origin de navegador', async () => {
   });
 });
 
+test('rechaza Origin vacio y configuracion de escucha externa', async () => {
+  assert.throws(() => createBridgeServer({ host: '0.0.0.0' }), /127.0.0.1/);
+  await withServer(async (base) => {
+    const res = await fetch(`${base}/state`, { headers: headers({ Origin: '' }) });
+    assert.equal(res.status, 403);
+  });
+});
+
+test('dos clientes SSE reciben cada cambio una sola vez', async () => {
+  const listeners = new Set();
+  const bridge = createBridgeServer({ port: 0, token: TOKEN, getState: () => state,
+    subscribe: (listener) => { listeners.add(listener); return () => listeners.delete(listener); } });
+  const { port } = await bridge.start();
+  const controllers = [new AbortController(), new AbortController()];
+  try {
+    const readers = await Promise.all(controllers.map(async (controller) => {
+      const response = await fetch(`http://127.0.0.1:${port}/stream`, { headers: headers(), signal: controller.signal });
+      const reader = response.body.getReader();
+      await reader.read();
+      return reader;
+    }));
+    for (const listener of listeners) listener({ effective: 'coding' });
+    for (const reader of readers) {
+      const chunk = new TextDecoder().decode((await reader.read()).value);
+      assert.equal(chunk.split('data: ').length - 1, 1);
+    }
+  } finally { controllers.forEach((c) => c.abort()); await bridge.stop(); }
+});
+
 test('exige Content-Type application/json', async () => {
   await withServer(async (base) => {
     const res = await fetch(`${base}/intent`, {

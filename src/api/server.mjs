@@ -57,12 +57,13 @@ export function createBridgeServer({
   onIntent,
   logger = { log, error }
 } = {}) {
+  if (host !== '127.0.0.1') throw new Error('El bridge solo puede escuchar en 127.0.0.1');
   const streams = new Set();
   const sockets = new Set();
   let heartbeat = null;
 
   function authorize(req, res) {
-    if (req.headers.origin) {
+    if (req.headers.origin !== undefined) {
       sendJson(res, 403, { ok: false, error: 'origen de navegador no permitido' });
       return false;
     }
@@ -96,7 +97,9 @@ export function createBridgeServer({
     });
     res.write(`data: ${JSON.stringify(getState())}\n\n`);
     streams.add(res);
-    const unsubscribe = subscribe?.(broadcast);
+    const unsubscribe = subscribe?.((payload) => {
+      if (!res.destroyed) res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    });
     req.on('close', () => {
       streams.delete(res);
       unsubscribe?.();
@@ -126,7 +129,9 @@ export function createBridgeServer({
   }
 
   const server = http.createServer((req, res) => {
-    const url = new URL(req.url ?? '/', `http://${req.headers.host ?? '127.0.0.1'}`);
+    let url;
+    try { url = new URL(req.url ?? '/', 'http://127.0.0.1'); }
+    catch { sendJson(res, 400, { ok: false, error: 'URL invalida' }); return; }
     const route = `${req.method} ${url.pathname}`;
 
     if (!authorize(req, res)) return;
