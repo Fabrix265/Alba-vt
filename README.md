@@ -4,7 +4,7 @@
 
 Alba es un personaje 2D (Live2D, renderizado por [VTube Studio](https://denchisoft.com/)) que reacciona en tiempo real a lo que hace tu agente: se pone a teclear cuando programa, se enoja o se pone triste cuando hay errores, celebra cuando termina, y se va a dormir cuando se lo pides. No es un chatbot aparte: es la cara del agente que ya usas.
 
-> **Estado:** en desarrollo (Fase 0). Proyecto no oficial: no está afiliado a VTube Studio, Live2D, opencode ni Anthropic.
+> **Estado:** en desarrollo (Fase 0), hasta el **Paso 3: adapter VTS** implementado. `npm start` ya conecta con VTS; `doctor`, clientes y demo siguen pendientes en los pasos 4–6. Proyecto no oficial: no está afiliado a VTube Studio, Live2D, opencode ni Anthropic.
 
 ## Qué hace
 
@@ -58,6 +58,8 @@ cp .env.example .env      # en Windows (cmd): copy .env.example .env
 
 ### 2. Verificar y autorizar
 
+En el estado actual, ejecuta `npm start` para autorizar Alba y guardar el token. La guía del adapter está en [`docs/vts-adapter.md`](docs/vts-adapter.md). El comando `doctor` descrito abajo se implementará en el Paso 4.
+
 ```bash
 npm run doctor
 ```
@@ -79,6 +81,8 @@ npm run demo   # eventos de prueba: idle → thinking → coding → celebrate �
 
 | Variable | Para qué sirve | Valor por defecto |
 |---|---|---|
+| `ALBA_ADAPTER` | Adapter real (`vts`) o de pruebas (`fake`) | `vts` |
+| `VTS_REQUEST_ITEM_PERMISSION` | Solicitar permiso de PNG externos al arrancar | `false` |
 | `VTS_PORT` | Puerto de la Plugin API de VTube Studio | `8001` |
 | `VTS_AUTH_TOKEN` | Token de plugin (se rellena solo tras aprobar el popup) | vacío |
 | `ALBA_BRIDGE_PORT` | Puerto del bridge (solo loopback) | `8790` |

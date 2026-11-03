@@ -3,52 +3,87 @@
   "scenes": {
     "idle": {
       "layer": "base",
-      "description": "Respira y mira al frente"
+      "description": "Respira y mira al frente",
+      "parameters": {
+        "angleX": 0,
+        "angleY": 0,
+        "angleZ": 0,
+        "smile": 0.15
+      }
     },
     "thinking": {
       "layer": "activity",
-      "hotkey": "Thinking"
+      "parameters": {
+        "angleX": 6,
+        "angleY": 4,
+        "angleZ": 3
+      }
     },
     "coding": {
       "layer": "activity",
-      "hotkey": "Coding",
-      "props": ["keyboard"]
+      "props": [
+        "keyboard"
+      ],
+      "parameters": {
+        "angleX": 0,
+        "angleY": -8,
+        "angleZ": 0
+      }
     },
     "reading": {
       "layer": "activity",
-      "hotkey": "Reading"
+      "parameters": {
+        "angleX": -6,
+        "angleY": -4,
+        "angleZ": 0
+      }
     },
     "celebrate": {
       "layer": "transient",
-      "hotkey": "Celebrate",
-      "durationMs": 3000
+      "durationMs": 3000,
+      "parameters": {
+        "angleY": 5,
+        "angleZ": 6,
+        "smile": 0.85
+      }
     },
     "error": {
       "layer": "transient",
-      "hotkey": "Error",
-      "durationMs": 2500
+      "durationMs": 2500,
+      "parameters": {
+        "angleY": -3,
+        "angleZ": -5,
+        "smile": 0
+      }
     },
     "sad": {
       "layer": "transient",
-      "hotkey": "Sad",
-      "durationMs": 4000
+      "durationMs": 4000,
+      "parameters": {
+        "angleY": -9,
+        "angleZ": -4,
+        "brow": 0.2,
+        "smile": 0
+      }
     },
     "angry": {
       "layer": "transient",
-      "hotkey": "Angry",
-      "durationMs": 2500
+      "durationMs": 2500,
+      "parameters": {
+        "angleY": -2,
+        "angleZ": 3,
+        "brow": 0.1,
+        "smile": 0
+      }
     },
     "sleep": {
-      "layer": "base",
-      "hotkey": "Sleep"
+      "layer": "base"
     },
     "deep_sleep": {
-      "layer": "base",
-      "hotkey": "Sleep"
+      "layer": "base"
     },
     "wake": {
-      "layer": "base",
-      "hotkey": "Wake"
+      "layer": "base"
     }
   }
 }

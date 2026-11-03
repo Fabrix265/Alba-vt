@@ -203,7 +203,7 @@ test('reconexion reautentica sin popup y aplica solo el ultimo estado', async (t
   assert.equal(mock.requests.length, count);
 });
 
-test('PNG ausentes, tipos futuros y archivos fuera del proyecto se omiten sin romper', async (t) => {
+test('PNG ausentes, tipos futuros y formatos invalidos se omiten sin romper', async (t) => {
   const { adapter, mock, warnings } = await setup(t);
   const next = structuredClone(context);
   next.assets = {
@@ -236,4 +236,41 @@ test('VTS cerrado no rompe connect y se recupera cuando vuelve al mismo puerto',
   t.after(() => mock.close());
   await waitFor(() => adapter.connected);
   assert.equal(requests(mock, 'InjectParameterDataRequest').length, 0);
+});
+test('refrescar inventario durante una carga lenta no duplica ni retira el prop', async (t) => {
+  const next = await assetFixture(t);
+  const { adapter, mock } = await setup(t, {
+    adapter: { refreshIntervalMs: 20 },
+    handle(request, respond) {
+      if (request.messageType === 'ItemLoadRequest') {
+        setTimeout(() => respond({ instanceID: 'slow-item' }), 150);
+        return true;
+      }
+    }
+  });
+  await adapter.applyState(state('coding', ['keyboard']), next);
+  await waitFor(() => adapter.getStatus().props.includes('keyboard'));
+  assert.equal(requests(mock, 'ItemLoadRequest').length, 1);
+  assert.equal(requests(mock, 'ItemUnloadRequest').length, 0);
+});
+
+test('un cambio de modelo durante el inventario invalida hotkeys y parametros anteriores', async (t) => {
+  let mismatch = false;
+  const { adapter, mock } = await setup(t, {
+    handle(request, respond) {
+      if (mismatch && request.messageType === 'HotkeysInCurrentModelRequest') {
+        respond({ modelLoaded: true, modelID: 'different-id', availableHotkeys: [] });
+        return true;
+      }
+    }
+  });
+  mismatch = true;
+  await adapter.refresh();
+  await adapter.applyState(state('coding'), context);
+  assert.equal(adapter.capabilities.parameters, false);
+  assert.equal(requests(mock, 'HotkeyTriggerRequest').length, 0);
+  mismatch = false;
+  await adapter.refresh();
+  assert.equal(adapter.capabilities.parameters, true);
+  assert.equal(requests(mock, 'HotkeyTriggerRequest').length, 1);
 });

@@ -35,7 +35,9 @@ export function createDirector({ scenes = {}, persona = {}, now = () => Date.now
 
   function snapshot(at = now()) {
     const effective = transient?.scene ?? activity ?? base;
-    const props = asleep ? [] : unique([...sceneProps(effective), ...manualProps]);
+    const props = asleep ? [] : unique([
+      ...sceneProps(base), ...sceneProps(activity), ...sceneProps(transient?.scene), ...manualProps
+    ]);
     return {
       asleep,
       deepSleep,

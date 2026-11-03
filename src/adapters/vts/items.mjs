@@ -65,6 +65,7 @@ export function createVtsItems({ client, rootDir, warn }) {
         // A state change during the load must not leave a stale prop on screen.
         if (!isCurrent()) await unload(id, loaded.get(id));
       } catch {
+        if (!isCurrent()) return;
         failed.add(failureKey);
         warn(`item-load:${id}`, `VTS: no se pudo cargar el prop ${id}; revisa archivo, formato y permisos`);
       }

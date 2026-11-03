@@ -20,7 +20,8 @@ export function createVtsAdapter({
   const warnOnce = (key, message) => {
     if (seen.has(key)) return;
     seen.add(key);
-    (logger.warn ?? logger.warnOnce)?.call(logger, message);
+    if (logger.warn) logger.warn(message);
+    else logger.warnOnce?.(key, message);
   };
   const auth = createVtsAuth({ envPath, token, timeoutMs: authTimeoutMs, logger });
   const items = createVtsItems({ client, rootDir, warn: warnOnce });
@@ -85,6 +86,9 @@ export function createVtsAdapter({
         lastSceneKey = '';
         parameterValues = [];
         mouth = null;
+        catalog = { ...catalog, model, hotkeys: [], parameters: [] };
+        capabilities = { ...capabilities, hotkeys: false, parameters: false };
+        revision += 1;
       }
       const results = await Promise.allSettled([
         client.request('HotkeysInCurrentModelRequest'),
@@ -98,15 +102,25 @@ export function createVtsAdapter({
         return {};
       });
       // The user may change models while these requests are in flight.
-      if (data.slice(0, 2).some((value) => value.modelID && value.modelID !== model.modelID)) {
+      if (data.slice(0, 2).some((value) =>
+        (value.modelID && value.modelID !== model.modelID) ||
+        (value.modelLoaded !== undefined && value.modelLoaded !== model.modelLoaded))) {
         parameterValues = [];
         mouth = null;
+        catalog = { ...catalog, hotkeys: [], parameters: [] };
+        capabilities = { ...capabilities, hotkeys: false, parameters: false };
+        revision += 1;
         return;
       }
+      const previous = JSON.stringify({
+        model: [catalog.model?.modelID, catalog.model?.modelLoaded],
+        hotkeys: catalog.hotkeys, parameters: catalog.parameters, permissions: catalog.permissions
+      });
       catalog = {
         model,
         hotkeys: data[0].availableHotkeys ?? [],
-        parameters: [...(data[1].defaultParameters ?? []), ...(data[1].customParameters ?? [])],
+        parameters: [...(data[1].defaultParameters ?? []), ...(data[1].customParameters ?? [])]
+          .map(({ name, min, max, defaultValue }) => ({ name, min, max, defaultValue })),
         permissions: data[2].permissions ?? []
       };
       capabilities = {
@@ -116,15 +130,20 @@ export function createVtsAdapter({
         modelDetection: true, processControl: false
       };
       if (!model.modelLoaded) warnOnce('model', 'VTS: no hay un modelo cargado; carga uno para ver a Alba');
-      revision += 1;
+      const current = JSON.stringify({
+        model: [catalog.model?.modelID, catalog.model?.modelLoaded],
+        hotkeys: catalog.hotkeys, parameters: catalog.parameters, permissions: catalog.permissions
+      });
+      if (current !== previous) revision += 1;
     } finally {
       refreshing = false;
     }
   }
 
   async function inject() {
-    if (injecting || !ready || !capabilities.parameters || desired?.state.asleep) return;
+    if (injecting || refreshing || !ready || !capabilities.parameters || desired?.state.asleep) return;
     const currentMouth = mouth;
+    const currentParameters = parameterValues;
     const values = new Map(parameterValues.map((parameter) => [parameter.id, parameter]));
     if (currentMouth) values.set(currentMouth.id, currentMouth);
     if (!values.size) return;
@@ -135,8 +154,8 @@ export function createVtsAdapter({
       if (currentMouth?.value === 0 && mouth === currentMouth) mouth = null;
     } catch (err) {
       if (session === generation) {
-        parameterValues = [];
-        mouth = null;
+        if (parameterValues === currentParameters) parameterValues = [];
+        if (mouth === currentMouth) mouth = null;
         warnOnce(`inject:${err.code}`, 'VTS: no se pudieron inyectar parametros; se libera el control');
       }
     } finally {
@@ -145,10 +164,10 @@ export function createVtsAdapter({
   }
 
   async function render() {
-    if (!ready || !desired) return;
+    if (!ready || refreshing || !desired) return;
     if (renderTask) return renderTask;
     renderTask = (async () => {
-      while (ready && desired && renderedRevision !== revision) {
+      while (ready && !refreshing && desired && renderedRevision !== revision) {
         const currentRevision = revision;
         const session = generation;
         const { state, context } = desired;

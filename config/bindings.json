@@ -1,31 +1,26 @@
 {
   "$schema": "./schemas/bindings.schema.json",
   "default": {
-    "hotkeys": {
-      "idle": "Idle",
-      "thinking": "Thinking",
-      "coding": "Coding",
-      "reading": "Reading",
-      "celebrate": "Celebrate",
-      "error": "Error",
-      "sad": "Sad",
-      "angry": "Angry",
-      "sleep": "Sleep",
-      "wake": "Wake"
-    },
+    "hotkeys": {},
     "parameters": {
-      "mouth": "ParamMouthOpenY",
-      "angleX": "ParamAngleX",
-      "angleY": "ParamAngleY",
-      "angleZ": "ParamAngleZ",
-      "eyeOpen": "ParamEyeLOpen",
-      "brow": "ParamBrowLY"
+      "mouth": "MouthOpen",
+      "angleX": "FaceAngleX",
+      "angleY": "FaceAngleY",
+      "angleZ": "FaceAngleZ",
+      "eyeOpen": "EyeOpenLeft",
+      "eyeOpenRight": "EyeOpenRight",
+      "brow": "Brows",
+      "smile": "MouthSmile"
     }
   },
   "models": {
     "akari": {
-      "match": ["akari"],
-      "hotkeys": {},
+      "match": [
+        "akari"
+      ],
+      "hotkeys": {
+        "celebrate": "Anim Shake"
+      },
       "parameters": {}
     }
   }

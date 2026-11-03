@@ -40,6 +40,7 @@ test('un transiente gana y al expirar vuelve a la actividad', () => {
   director.applyIntent('coding', { now: 1000 });
   director.applyIntent('celebrate', { now: 2000 });
   assert.equal(director.getState().effective, 'celebrate');
+  assert.deepEqual(director.getState().props, ['keyboard']);
   assert.equal(director.tick(2999).effective, 'celebrate');
   assert.equal(director.tick(3000).effective, 'coding');
 });

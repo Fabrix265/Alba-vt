@@ -43,8 +43,8 @@ export function translateScene(intent, { scenes = {}, bindings = {} }, catalog, 
     warn(`hotkey:${catalog.model.modelID}:${reference}`, `VTS: falta el hotkey para ${intent}; uso parametros disponibles`);
   }
   let parameters = translateParameters(scene.parameters, binding, catalog.parameters, warn);
-  if (!hotkey && parameters.length === 0 && intent !== 'idle') {
-    warn(`scene:${catalog.model.modelID}:${intent}`, `VTS: ${intent} sin hotkey ni parametros; uso idle`);
+  if (parameters.length === 0 && intent !== 'idle') {
+    if (!hotkey) warn(`scene:${catalog.model.modelID}:${intent}`, `VTS: ${intent} sin hotkey ni parametros; uso idle`);
     parameters = translateParameters(sceneMap.idle?.parameters, binding, catalog.parameters, warn);
   }
   return { binding, hotkey: hotkey ?? null, parameters };
