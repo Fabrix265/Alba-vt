@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' alba-clip: data:; media-src 'self' alba-clip:; style-src 'self' 'unsafe-inline'">
+  <title>Alba PNGTuber</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="stage">
+    <div id="pet" class="hit" aria-label="Alba">
+      <img id="clip-image" alt="" draggable="false">
+      <video id="clip-video" muted autoplay playsinline loop></video>
+      <div id="placeholder">
+        <strong>Alba PNGTuber</strong>
+        <span>Agrega tus clips en assets/pngtuber</span>
+      </div>
+    </div>
+    <div id="bubble" role="status"></div>
+    <div id="status" title="Conexion con el bridge"></div>
+  </main>
+  <script type="module" src="renderer.mjs"></script>
+</body>
+</html>

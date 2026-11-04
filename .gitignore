@@ -22,6 +22,10 @@ assets/models/*
 !assets/models/.gitkeep
 assets/props/*
 !assets/props/.gitkeep
+!assets/pngtuber/
+assets/pngtuber/*
+!assets/pngtuber/.gitkeep
+!assets/pngtuber/README.md
 
 # Logs y temporales
 *.log

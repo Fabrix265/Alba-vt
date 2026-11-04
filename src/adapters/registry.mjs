@@ -1,5 +1,6 @@
 import { createFakeAdapter } from './fake/index.mjs';
 import { createVtsAdapter } from './vts/index.mjs';
+import { createPngtuberAdapter } from './pngtuber/index.mjs';
 
 const ALIASES = Object.freeze({
   vts: 'vtuber',
@@ -13,6 +14,7 @@ const FACTORIES = Object.freeze({
     token: env.VTS_AUTH_TOKEN,
     requestItemPermission: env.VTS_REQUEST_ITEM_PERMISSION === 'true'
   }),
+  pngtuber: ({ rootDir, env }) => createPngtuberAdapter({ rootDir, env }),
   fake: () => createFakeAdapter()
 });
 
