@@ -8,7 +8,7 @@ import { createMockVts, waitFor } from '../fixtures/vts-server.mjs';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const headers = { 'Content-Type': 'application/json', 'X-Alba-Token': 'bridge-fixture-token' };
 
-async function startBridge(t, port, adapter = 'vts') {
+async function startBridge(t, port, adapter = 'vtuber') {
   const child = spawn(process.execPath, ['src/index.mjs'], {
     cwd: root, windowsHide: true,
     env: { ...process.env, ALBA_ADAPTER: adapter, VTS_PORT: String(port), ALBA_BRIDGE_PORT: '0',

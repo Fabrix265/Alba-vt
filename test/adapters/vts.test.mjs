@@ -213,7 +213,7 @@ test('PNG ausentes, tipos futuros y formatos invalidos se omiten sin romper', as
   };
   for (let i = 0; i < 2; i += 1) await adapter.applyState(state('coding', ['missing', 'future', 'invalid']), next);
   assert.equal(requests(mock, 'ItemLoadRequest').length, 0);
-  assert.equal(warnings.filter((m) => m.includes('prop missing')).length, 1);
+  assert.equal(warnings.filter((m) => m.includes('falta el archivo del recurso missing')).length, 1);
   assert.equal(adapter.connected, true);
 });
 

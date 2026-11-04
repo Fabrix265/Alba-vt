@@ -20,8 +20,8 @@ export async function runCli(args, { client = createBridgeClient(), write = cons
   const { state } = await client.state();
   if (phrase === 'hotkeys') {
     const adapter = state.adapter;
-    if (adapter?.name !== 'vts') {
-      write('Hotkeys no disponibles: el bridge no esta usando el adapter VTS.');
+    if (adapter?.name !== 'vtuber') {
+      write('Hotkeys no disponibles: el bridge no esta usando el modo VTuber.');
       return 1;
     }
     if (!adapter.connected) {
