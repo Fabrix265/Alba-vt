@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { WebSocket } from 'ws';
 import { createPngtuberAdapter } from '../../src/adapters/pngtuber/index.mjs';
+import { createPetLauncher } from '../../src/adapters/pngtuber/launcher.mjs';
 
 function fixture() {
   const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'alba-pngtuber-'));
@@ -107,4 +108,10 @@ test('PNGTuber rechaza un token incorrecto y sobrevive a un puerto ocupado', asy
   assert.equal(warnings.some(({ key }) => key === 'pngtuber-listen'), true);
   await blocked.disconnect();
   fs.rmSync(rootDir, { recursive: true, force: true });
+});
+
+test('el launcher respeta ALBA_PET_LAUNCH=false y no inicia procesos', () => {
+  const launcher = createPetLauncher({ rootDir: '.', env: { ALBA_PET_LAUNCH: 'false' } });
+  assert.equal(launcher.start(), false);
+  assert.equal(launcher.running, false);
 });

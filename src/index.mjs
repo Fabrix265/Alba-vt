@@ -36,7 +36,8 @@ const adapter = createAdapter(normalizeAdapterName(adapterName), { rootDir: root
 let assets = createAssetRegistry({ assets: config.assets, rootDir: root, assetTypes: adapter.assetTypes });
 assets.report();
 
-const app = createApp({ config, adapter, processControl: createVtsProcess({ env }) });
+const processControl = adapter.name === 'vtuber' ? createVtsProcess({ env }) : undefined;
+const app = createApp({ config, adapter, processControl });
 loader.onChange((next) => {
   config = next;
   app.updateConfig(next);

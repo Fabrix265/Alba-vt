@@ -1,10 +1,10 @@
 # Adapter de VTube Studio (Paso 3)
 
-El bridge usa VTS por defecto. Arranca con `npm start`, con la Plugin API activada y un modelo cargado. Acepta el popup de **Alba** la primera vez: el token se guarda en el `.env` del proyecto y se reutiliza en las conexiones siguientes. Un rechazo o un timeout de autorización no provoca más popups durante esa ejecución; reinicia el bridge cuando quieras volver a autorizarlo.
+El modo `vtuber` usa VTube Studio y es el valor por defecto de `ALBA_ADAPTER`. Arranca con `npm start`, con la Plugin API activada y un modelo cargado. Acepta el popup de **Alba** la primera vez: el token se guarda en el `.env` del proyecto y se reutiliza en las conexiones siguientes. Un rechazo o un timeout de autorización no provoca más popups durante esa ejecución; reinicia el bridge cuando quieras volver a autorizarlo.
 
 El HTTP arranca aunque VTS esté cerrado o esperando autorización. La reconexión usa esperas de 0,5 s, 1 s, 2 s… hasta 30 s. Al reconectar se autentica de nuevo y aplica el último estado del director. No reproduce eventos antiguos.
 
-Para trabajar sin VTS, configura `ALBA_ADAPTER=fake` en `.env`. `VTS_PORT` y `ALBA_BRIDGE_PORT` también se leen de `.env`; los valores por defecto están en `.env.example`.
+Para trabajar sin VTS, configura `ALBA_ADAPTER=fake` en `.env`; para usar una ventana con clips, `ALBA_ADAPTER=pngtuber` y consulta la [guía PNGTuber](pngtuber.md). `VTS_PORT` y `ALBA_BRIDGE_PORT` también se leen de `.env`; los valores por defecto están en `.env.example`.
 
 ## Modelos y parámetros
 

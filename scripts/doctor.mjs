@@ -1,10 +1,25 @@
+import fs from 'node:fs';
 import path from 'node:path';
+import { createRequire } from 'node:module';
 import { readEnvironment, projectRoot, isMain } from '../src/environment.mjs';
 import { createConfigLoader } from '../src/core/config-loader.mjs';
 import { createAssetRegistry } from '../src/core/assets.mjs';
+import { createAdapter, isAdapterName, normalizeAdapterName } from '../src/adapters/registry.mjs';
 import { selectBinding } from '../src/adapters/vts/translate.mjs';
 import { createVtsClient } from '../src/adapters/vts/client.mjs';
 import { createVtsAuth, readAuthToken } from '../src/adapters/vts/auth.mjs';
+
+const require = createRequire(import.meta.url);
+
+function electronStatus(rootDir) {
+  try {
+    const entry = require.resolve('electron', { paths: [rootDir] });
+    if (!fs.existsSync(path.join(path.dirname(entry), 'path.txt'))) return { ready: false, reason: 'binary' };
+    return { ready: true, reason: null };
+  } catch {
+    return { ready: false, reason: 'missing' };
+  }
+}
 
 export async function runDoctor({
   rootDir = projectRoot, env = process.env, nodeVersion = process.versions.node,
@@ -12,7 +27,9 @@ export async function runDoctor({
   announce = () => {}
 } = {}) {
   const checks = [];
-  const inventory = { model: null, hotkeys: [], parameters: [], permissions: [], assets: [] };
+  const inventory = {
+    adapter: null, model: null, hotkeys: [], parameters: [], permissions: [], assets: []
+  };
   const check = (status, name, message) => checks.push({ status, name, message });
   const result = () => ({ ok: !checks.some((entry) => entry.status === 'error'), checks, inventory });
   check(Number(nodeVersion.split('.')[0]) >= 24 ? 'ok' : 'error', 'Node', `${nodeVersion}; se requiere Node 24 o superior`);
@@ -21,6 +38,16 @@ export async function runDoctor({
     check('error', 'Entorno', 'No se pudo leer .env o .env.example. Revisa los permisos de lectura.');
     return result();
   }
+  const adapterName = normalizeAdapterName(settings.ALBA_ADAPTER);
+  let adapter = null;
+  try {
+    if (!isAdapterName(adapterName)) throw new Error(`adapter desconocido: ${settings.ALBA_ADAPTER}`);
+    adapter = createAdapter(adapterName, { rootDir, env: settings });
+    inventory.adapter = adapter.name;
+    check('ok', 'Adapter', `${adapter.name} seleccionado con ALBA_ADAPTER`);
+  } catch {
+    check('error', 'Adapter', `ALBA_ADAPTER no es valido. Usa vtuber, pngtuber o fake.`);
+  }
   check(settings.ALBA_TOKEN?.trim() ? 'ok' : 'error', 'Bridge', settings.ALBA_TOKEN?.trim()
     ? 'ALBA_TOKEN configurado (valor oculto)'
     : 'Falta ALBA_TOKEN. Guarda un token aleatorio en .env antes de arrancar el bridge.');
@@ -28,14 +55,59 @@ export async function runDoctor({
   try {
     config = createConfigLoader({ configDir: path.join(rootDir, 'config') }).load({ initial: true });
     check('ok', 'Config', 'Todos los JSON cumplen sus schemas');
-    const registry = createAssetRegistry({ assets: config.assets, rootDir, logger: { warnOnce() {} } });
-    inventory.assets = registry.list().map((id) => ({ id, type: config.assets[id].type, available: Boolean(registry.resolve(id)) }));
-    const missing = inventory.assets.filter((asset) => !asset.available).map((asset) => asset.id);
+    const registry = createAssetRegistry({
+      assets: config.assets, rootDir, assetTypes: adapter?.assetTypes,
+      logger: { warnOnce() {} }
+    });
+    inventory.assets = registry.list().map((id) => {
+      const type = config.assets[id].type;
+      const supported = !adapter?.assetTypes || adapter.assetTypes.includes(type);
+      const available = supported ? Boolean(registry.resolve(id)) : false;
+      return { id, type, supported, available };
+    });
+    const missing = inventory.assets.filter((asset) => asset.supported && !asset.available).map((asset) => asset.id);
     check(missing.length ? 'warning' : 'ok', 'Recursos', missing.length
-      ? `Ausentes o no compatibles: ${missing.join(', ')}. Revisa assets.json y añade tus archivos; son opcionales.`
+      ? `Ausentes o no compatibles: ${missing.join(', ')}. Revisa assets.json y a\u00f1ade tus archivos; son opcionales.`
       : 'Todos los recursos declarados estan disponibles');
   } catch {
     check('error', 'Config', 'Configuracion invalida. Revisa config/ y sus schemas antes de arrancar.');
+  }
+  if (!adapter) return result();
+  if (adapter.name === 'fake') {
+    check('ok', 'Modo', 'fake: no abre VTS ni una ventana; util para demos y tests');
+    return result();
+  }
+  if (adapter.name === 'pngtuber') {
+    const petToken = settings.ALBA_PET_TOKEN?.trim() || settings.ALBA_TOKEN?.trim();
+    check(petToken ? 'ok' : 'error', 'Token PNGTuber', petToken
+      ? 'ALBA_PET_TOKEN o ALBA_TOKEN configurado (valor oculto)'
+      : 'Falta ALBA_PET_TOKEN y ALBA_TOKEN; la ventana no podra autenticarse.');
+    const petPort = Number(settings.ALBA_PET_PORT);
+    check(Number.isInteger(petPort) && petPort > 0 && petPort < 65536 ? 'ok' : 'error', 'Puerto PNGTuber',
+      Number.isInteger(petPort) && petPort > 0 && petPort < 65536
+        ? `WebSocket local en 127.0.0.1:${petPort}`
+        : 'ALBA_PET_PORT debe ser un puerto entre 1 y 65535.');
+    const electron = electronStatus(rootDir);
+    if (electron.ready) check('ok', 'Electron', 'Binario disponible para la ventana de escritorio');
+    else check('warning', 'Electron', electron.reason === 'binary'
+      ? 'El binario aun no esta descargado. Ejecuta npm run pet una vez.'
+      : 'Electron no esta instalado. Instala dependencias opcionales o usa npm run pet.');
+    check(settings.ALBA_PET_LAUNCH === 'false' ? 'warning' : 'ok', 'Ventana PNGTuber',
+      settings.ALBA_PET_LAUNCH === 'false'
+        ? 'ALBA_PET_LAUNCH=false: abre la ventana a mano con npm run pet'
+        : 'Se abrira automaticamente al arrancar el bridge');
+    const clips = inventory.assets.filter((asset) => asset.type === 'clip');
+    const readyClips = clips.filter((asset) => asset.available);
+    if (!clips.length) {
+      check('warning', 'Clips PNGTuber', 'No hay clips declarados. La ventana mostrara el marcador hasta que agregues assets.');
+    } else if (!readyClips.length) {
+      check('warning', 'Clips PNGTuber', `${clips.length} clips declarados, ninguno disponible. La ventana mostrara el marcador.`);
+    } else if (readyClips.length < clips.length) {
+      check('warning', 'Clips PNGTuber', `${readyClips.length} de ${clips.length} clips disponibles; el resto usara el marcador.`);
+    } else {
+      check('ok', 'Clips PNGTuber', `${readyClips.length} clips disponibles para la ventana`);
+    }
+    return result();
   }
   let client;
   try {
@@ -122,7 +194,10 @@ export function formatDoctor(report) {
   }
   if (report.inventory.assets.length) {
     lines.push('\nRecursos:');
-    for (const a of report.inventory.assets) lines.push(`  ${a.id} (${a.type}): ${a.available ? 'presente' : 'ausente/no compatible'}`);
+    for (const a of report.inventory.assets) {
+      const state = a.supported === false ? 'no aplica al adapter' : a.available ? 'presente' : 'ausente/no compatible';
+      lines.push(`  ${a.id} (${a.type}): ${state}`);
+    }
   }
   lines.push(report.ok ? '\nDoctor OK. Los avisos indican funciones opcionales degradadas.' : '\nDoctor encontro errores; sigue las indicaciones anteriores.');
   return lines.join('\n');

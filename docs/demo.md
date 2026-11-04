@@ -15,7 +15,9 @@ Respeta la duracion minima configurada y espera a que termine celebrate. Si hay
 otros clientes activos o modificaste las reglas, informa de la escena observada
 cuando difiere de la esperada. No cambia la configuracion ni reinicia el bridge;
 para repetirla espera el cooldown de fin-exitoso (15 segundos por defecto).
-No despierta a Alba, cierra VTS ni ejecuta herramientas del sistema.
+No despierta a Alba, cierra VTS ni ejecuta herramientas del sistema. Con
+`ALBA_ADAPTER=pngtuber`, la misma secuencia mueve la ventana y cambia de clip;
+un clip ausente solo muestra el marcador.
 
 `npm run demo -- --fake` usa el mismo core y JSON con un reloj local acelerado y
 el adapter fake: no abre conexiones, no necesita VTS ni token y solo imprime la

@@ -6,6 +6,10 @@ Si no tienes el bin `alba` instalado, todos los ejemplos funcionan sustituyendo
 nada globalmente. `npm link` modifica el entorno fuera del proyecto y requiere
 aprobación aparte.
 
+Esta guía usa el modo `vtuber`: `alba hotkeys` y los bindings solo aplican a
+VTube Studio. En `pngtuber` los comandos siguen funcionando, pero cada escena
+elige un clip en `config/scenes.json`; consulta la [guía PNGTuber](pngtuber.md).
+
 Los comandos viven en `config/commands.json`. El bridge recarga los JSON al
 guardar; no hace falta reiniciarlo. Conserva las entradas existentes, las comas
 entre entradas y el campo `$schema`. Si un archivo no es válido, el bridge avisa

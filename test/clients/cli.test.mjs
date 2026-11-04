@@ -102,3 +102,14 @@ test('wake desde deep_sleep exige permiso para lanzar; reglas no cierran VTS', a
   await runCli(['ring', 'ring', '--yes'], options);
   assert.equal(launches, 1);
 });
+
+test('hotkeys explica que el modo PNGTuber no expone hotkeys', async () => {
+  const output = [];
+  const code = await runCli(['hotkeys'], {
+    client: { state: async () => ({ state: { adapter: { name: 'pngtuber', connected: true, capabilities: { hotkeys: false } } } }) },
+    write: (line) => output.push(line)
+  });
+  assert.equal(code, 1);
+  assert.match(output[0], /PNGTuber|pngtuber/);
+  assert.match(output[0], /clips/);
+});

@@ -62,10 +62,14 @@ export function createApp({ config: initial, adapter, processControl, now = Date
       let notice;
       if (intent === 'deep_sleep') {
         if (processControl?.status.canClose) await processControl.close({ confirmed: true });
-        else notice = 'Control de procesos desactivado: Alba se pausa; VTS sigue abierto';
+        else notice = adapter.name === 'pngtuber'
+          ? 'Control de procesos desactivado: Alba se pausa; la ventana sigue abierta'
+          : 'Control de procesos desactivado: Alba se pausa; VTS sigue abierto';
       }
       if (launch) await processControl.launch({ confirmed: true });
-      else if (intent === 'wake' && state.deepSleep) notice = 'Abre VTube Studio manualmente; Alba reconecta cuando aparezca';
+      else if (intent === 'wake' && state.deepSleep) notice = adapter.name === 'pngtuber'
+        ? 'Alba vuelve a idle; la ventana sigue abierta'
+        : 'Abre VTube Studio manualmente; Alba reconecta cuando aparezca';
       // Disabled process control degrades to ordinary sleep without claiming VTS closed.
       const effectiveIntent = intent === 'deep_sleep' && !processControl?.status.canClose ? 'sleep' : intent;
       const applied = director.applyIntent(effectiveIntent, { props });

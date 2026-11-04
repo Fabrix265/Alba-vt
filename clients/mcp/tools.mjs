@@ -10,7 +10,7 @@ export const toolDefinitions = [
   definition('avatar_status', 'Consulta estado, escenas, comandos y conexion de Alba/VTS. No cambia nada.', schema(), true),
   definition('avatar_say', 'Mueve la boca con lip-sync sintetico, sin audio en Fase 0. Se ignora mientras Alba duerme.', schema({ text }, ['text'])),
   definition('avatar_scene', 'Solicita una intencion/escena por id de avatar_status; el director aplica limites y prioridades.', schema({ scene: text, props: { type: 'array', items: text, maxItems: 32 } }, ['scene'])),
-  definition('avatar_hotkey', 'Activa una intencion mediante su binding del modelo; usa parametros de respaldo si falta el hotkey. No acepta ids ni nombres crudos de VTS.', schema({ intent: text }, ['intent'])),
+  definition('avatar_hotkey', 'Activa una intencion mediante su binding del modelo (solo modo vtuber); usa parametros de respaldo si falta el hotkey. No acepta ids ni nombres crudos de VTS.', schema({ intent: text }, ['intent'])),
   definition('avatar_sleep', 'Pausa Alba. Con deep=true puede cerrar VTS: pide primero permiso explicito al usuario para esta operacion; luego confirmed=true. Sin control configurado solo pausa.', schema({ deep: { type: 'boolean' }, confirmed })),
   definition('avatar_wake', 'Despierta Alba. Si deep_sleep requiere lanzar VTS, pide permiso explicito antes de confirmed=true. Sin launcher se abre VTS manualmente.', schema({ confirmed }))
 ];

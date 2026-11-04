@@ -20,8 +20,9 @@ export async function runCli(args, { client = createBridgeClient(), write = cons
   const { state } = await client.state();
   if (phrase === 'hotkeys') {
     const adapter = state.adapter;
-    if (adapter?.name !== 'vtuber') {
-      write('Hotkeys no disponibles: el bridge no esta usando el modo VTuber.');
+    if (adapter?.capabilities?.hotkeys !== true) {
+      const mode = adapter?.name ?? 'desconocido';
+      write(`Hotkeys no disponibles: el modo ${mode} no expone hotkeys${mode === 'pngtuber' ? '; usa los clips de la ventana' : ''}.`);
       return 1;
     }
     if (!adapter.connected) {

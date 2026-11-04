@@ -17,9 +17,11 @@ en package.json; la instalacion global con `npm link` requiere aprobacion aparte
 No hace falta instalarlo para usar los comandos locales.
 
 El bridge resuelve las frases usando la ultima version valida de commands.json.
-`alba hotkeys` lista nombre e ID de todos los hotkeys que anuncia el modelo
-cargado, incluidos los que no tienen binding y los que no tienen nombre. No
-activa expresiones; requiere el bridge con adapter VTS conectado y un modelo.
+Los comandos funcionan igual en los modos `vtuber` y `pngtuber`: cambia el medio,
+no la frase. `alba hotkeys` lista nombre e ID de todos los hotkeys que anuncia el
+modelo cargado, incluidos los que no tienen binding y los que no tienen nombre.
+No activa expresiones; requiere el bridge con adapter VTS conectado y un modelo.
+En `pngtuber` no hay hotkeys: los clips se asignan en `config/scenes.json`.
 El catalogo se actualiza periodicamente, normalmente cada 2 segundos.
 
 Consulta el [catalogo y la guia para añadir comandos](../../docs/adding-a-command.md):
