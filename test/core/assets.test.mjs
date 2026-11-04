@@ -66,3 +66,28 @@ test('report devuelve disponibles y ausentes', () => {
     fs.rmSync(rootDir, { recursive: true, force: true });
   }
 });
+
+test('resuelve clips y los omite sin avisar cuando el adapter no los soporta', () => {
+  const rootDir = tempRoot();
+  fs.mkdirSync(path.join(rootDir, 'assets', 'pngtuber'), { recursive: true });
+  fs.writeFileSync(path.join(rootDir, 'assets', 'pngtuber', 'idle.apng'), 'apng');
+  const clipAssets = {
+    ...assets,
+    idle: { type: 'clip', file: 'assets/pngtuber/idle.apng', loop: true, fit: 'contain' },
+    missing: { type: 'clip', file: 'assets/pngtuber/missing.webm' }
+  };
+  try {
+    const vtuber = createAssetRegistry({ assets: clipAssets, rootDir, assetTypes: ['item'] });
+    assert.equal(vtuber.resolve('idle'), null);
+    assert.deepEqual(vtuber.missing().sort(), ['chime', 'mug']);
+    const pngtuber = createAssetRegistry({ assets: clipAssets, rootDir, assetTypes: ['clip'] });
+    const idle = pngtuber.resolve('idle');
+    assert.equal(idle.type, 'clip');
+    assert.equal(idle.loop, true);
+    assert.equal(idle.fit, 'contain');
+    assert.equal(pngtuber.resolve('missing'), null);
+    assert.deepEqual(pngtuber.missing().sort(), ['chime', 'missing']);
+  } finally {
+    fs.rmSync(rootDir, { recursive: true, force: true });
+  }
+});

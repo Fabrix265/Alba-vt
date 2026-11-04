@@ -78,7 +78,9 @@ export function createApp({ config: initial, adapter, processControl, now = Date
     updateConfig(next) {
       config = next;
       rules = createRulesEngine({ rules: next.rules, now });
+      const before = JSON.stringify(director.getState());
       director.updateConfig({ scenes: next.scenes, persona: next.persona });
+      if (JSON.stringify(director.getState()) === before) applyState(director.getState());
     },
     stop: () => speech.stop()
   };

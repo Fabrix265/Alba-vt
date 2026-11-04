@@ -13,5 +13,71 @@
     "layer": "props",
     "position": { "x": 0.35, "y": -0.15 },
     "size": 0.2
+  },
+  "idle": {
+    "type": "clip",
+    "file": "assets/pngtuber/idle.apng",
+    "fit": "contain",
+    "loop": true
+  },
+  "idle_talk": {
+    "type": "clip",
+    "file": "assets/pngtuber/idle_talk.apng",
+    "fit": "contain",
+    "loop": true
+  },
+  "thinking": {
+    "type": "clip",
+    "file": "assets/pngtuber/thinking.apng",
+    "fit": "contain",
+    "loop": true
+  },
+  "thinking_talk": {
+    "type": "clip",
+    "file": "assets/pngtuber/thinking_talk.apng",
+    "fit": "contain",
+    "loop": true
+  },
+  "coding": {
+    "type": "clip",
+    "file": "assets/pngtuber/coding.apng",
+    "fit": "contain",
+    "loop": true
+  },
+  "reading": {
+    "type": "clip",
+    "file": "assets/pngtuber/reading.apng",
+    "fit": "contain",
+    "loop": true
+  },
+  "celebrate": {
+    "type": "clip",
+    "file": "assets/pngtuber/celebrate.apng",
+    "fit": "contain",
+    "loop": true
+  },
+  "error": {
+    "type": "clip",
+    "file": "assets/pngtuber/error.apng",
+    "fit": "contain",
+    "loop": true
+  },
+  "sad": {
+    "type": "clip",
+    "file": "assets/pngtuber/sad.apng",
+    "fit": "contain",
+    "loop": true
+  },
+  "angry": {
+    "type": "clip",
+    "file": "assets/pngtuber/angry.apng",
+    "fit": "contain",
+    "loop": true
+  },
+  "sleep": {
+    "type": "clip",
+    "file": "assets/pngtuber/sleep.apng",
+    "fit": "contain",
+    "loop": true
   }
 }

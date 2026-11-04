@@ -17,6 +17,8 @@
           "durationMs": { "type": "integer", "minimum": 0 },
           "holdPoseWhileAsleep": { "type": "boolean" },
           "parameterRefreshMs": { "type": "integer", "minimum": 50, "maximum": 500 },
+          "clip": { "type": "string", "minLength": 1 },
+          "talkingClip": { "type": "string", "minLength": 1 },
           "props": {
             "type": "array",
             "items": { "type": "string", "minLength": 1 },

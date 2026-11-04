@@ -2,12 +2,20 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { warnOnce } from './log.mjs';
 
-export function createAssetRegistry({ assets = {}, rootDir, capabilities, logger = { warnOnce } }) {
+const KNOWN_TYPES = new Set(['item', 'clip']);
+
+export function createAssetRegistry({ assets = {}, rootDir, assetTypes, capabilities, logger = { warnOnce } }) {
   const declared = Object.fromEntries(
     Object.entries(assets).filter(([key]) => !key.startsWith('$'))
   );
+  const explicitTypes = Array.isArray(assetTypes) ? new Set(assetTypes) : null;
   const itemsSupported = capabilities ? capabilities.has('items') : true;
+  const clipsSupported = capabilities ? capabilities.has('clips') : false;
+  const supported = (type) => explicitTypes
+    ? explicitTypes.has(type)
+    : type === 'item' ? itemsSupported : type === 'clip' ? clipsSupported : false;
   const resolved = new Map();
+  const skipped = new Set();
 
   function resolve(id) {
     if (!id || typeof id !== 'string') return null;
@@ -17,7 +25,7 @@ export function createAssetRegistry({ assets = {}, rootDir, capabilities, logger
     }
     if (resolved.has(id)) return resolved.get(id);
     const resource = declared[id];
-    if (resource.type !== 'item') {
+    if (!KNOWN_TYPES.has(resource.type)) {
       logger.warnOnce(
         `asset-type:${resource.type}`,
         `tipo de recurso no soportado todavia: ${resource.type} (${id})`
@@ -25,11 +33,14 @@ export function createAssetRegistry({ assets = {}, rootDir, capabilities, logger
       resolved.set(id, null);
       return null;
     }
-    if (!itemsSupported) {
-      logger.warnOnce(
-        'items-unsupported',
-        'el adapter no soporta items; los props no se cargaran'
-      );
+    if (!supported(resource.type)) {
+      if (resource.type === 'item') {
+        logger.warnOnce(
+          'items-unsupported',
+          'el adapter no soporta items; los props no se cargaran'
+        );
+      }
+      skipped.add(id);
       resolved.set(id, null);
       return null;
     }
@@ -49,7 +60,10 @@ export function createAssetRegistry({ assets = {}, rootDir, capabilities, logger
   }
 
   function missing() {
-    return list().filter((id) => resolve(id) === null);
+    return list().filter((id) => {
+      const value = resolve(id);
+      return value === null && !skipped.has(id);
+    });
   }
 
   function available() {

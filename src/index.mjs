@@ -33,14 +33,14 @@ if (!isAdapterName(adapterName)) {
   process.exit(1);
 }
 const adapter = createAdapter(normalizeAdapterName(adapterName), { rootDir: root, env });
-let assets = createAssetRegistry({ assets: config.assets, rootDir: root });
+let assets = createAssetRegistry({ assets: config.assets, rootDir: root, assetTypes: adapter.assetTypes });
 assets.report();
 
 const app = createApp({ config, adapter, processControl: createVtsProcess({ env }) });
 loader.onChange((next) => {
   config = next;
   app.updateConfig(next);
-  assets = createAssetRegistry({ assets: next.assets, rootDir: root });
+  assets = createAssetRegistry({ assets: next.assets, rootDir: root, assetTypes: adapter.assetTypes });
   assets.report();
   log('config recargada');
 });
