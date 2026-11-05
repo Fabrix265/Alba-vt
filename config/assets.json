@@ -16,7 +16,7 @@
   },
   "idle": {
     "type": "clip",
-    "file": "assets/pngtuber/idle.apng",
+    "file": "assets/pngtuber/idle.gif",
     "fit": "contain",
     "loop": true
   },

@@ -2,9 +2,11 @@ const image = document.getElementById('clip-image');
 const video = document.getElementById('clip-video');
 const pet = document.getElementById('pet');
 const placeholder = document.getElementById('placeholder');
+const placeholderHint = document.getElementById('placeholder-hint');
 const bubble = document.getElementById('bubble');
 const statusDot = document.getElementById('status');
 let interactive = false;
+let connected = false;
 let currentClip = null;
 let bubbleTimer = null;
 
@@ -22,12 +24,24 @@ function hideAll() {
   image.removeAttribute('src');
 }
 
+function updatePlaceholder() {
+  const show = currentClip === null;
+  placeholder.classList.toggle('visible', show);
+  if (show) placeholderHint.textContent = connected
+    ? 'Agrega tus clips en assets/pngtuber'
+    : 'Conectando con el bridge… (npm start)';
+}
+
+function clearClip() {
+  currentClip = null;
+  hideAll();
+  updatePlaceholder();
+}
+
 function renderClip(clip) {
   if (!clip) {
-    if (currentClip === null) return;
-    currentClip = null;
-    hideAll();
-    placeholder.classList.add('visible');
+    if (currentClip === null) { updatePlaceholder(); return; }
+    clearClip();
     return;
   }
   const key = `${clip.kind}:${clip.file}`;
@@ -46,7 +60,17 @@ function renderClip(clip) {
     image.src = url;
     image.classList.add('visible');
   }
+  updatePlaceholder();
 }
+
+function onClipError() {
+  if (currentClip === null || !this.getAttribute('src')) return;
+  clearClip();
+}
+image.addEventListener('error', onClipError);
+video.addEventListener('error', onClipError);
+
+updatePlaceholder();
 
 function showBubble(text) {
   if (!text) return;
@@ -64,7 +88,11 @@ window.alba.onState((message) => {
   }
   if (message.type === 'say') showBubble(message.text);
 });
-window.alba.onConnection(({ connected }) => statusDot.classList.toggle('connected', Boolean(connected)));
+window.alba.onConnection(({ connected: value }) => {
+  connected = Boolean(value);
+  statusDot.classList.toggle('connected', connected);
+  updatePlaceholder();
+});
 window.alba.onInteractive((value) => {
   interactive = Boolean(value);
   document.body.classList.toggle('interactive', interactive);
