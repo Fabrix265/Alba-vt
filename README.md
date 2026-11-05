@@ -56,7 +56,7 @@ cp .env.example .env      # en Windows (cmd): copy .env.example .env
 
 ### 1. Elegir modo
 
-En `.env`, `ALBA_ADAPTER` acepta `vtuber` (VTube Studio), `pngtuber` (ventana de escritorio con clips) o `fake` (sin ventanas ni conexiones). Los alias antiguos `vts` y `pet` siguen funcionando. El modo PNGTuber se explica en su [guía](docs/pngtuber.md).
+En `.env`, `ALBA_ADAPTER` acepta `vtuber` (VTube Studio), `pngtuber` (ventana de escritorio con clips) o `fake` (sin ventanas ni conexiones). Los alias antiguos `vts` y `pet` siguen funcionando. El modo PNGTuber se explica en su [guía](docs/pngtuber.md), que incluye la [puesta en marcha paso a paso](docs/pngtuber.md#puesta-en-marcha-paso-a-paso): qué líneas agregar al `.env`, qué clips poner en `assets/pngtuber/`, cómo levantar el bridge y cómo comprobar que se ve a Alba.
 
 ### 2. Habilitar la Plugin API de VTube Studio
 
