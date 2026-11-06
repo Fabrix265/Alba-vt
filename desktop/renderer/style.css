@@ -16,3 +16,14 @@ body { pointer-events: none; user-select: none; font-family: "Segoe UI", system-
 #status { position: absolute; right: 14px; top: 14px; width: 10px; height: 10px; border-radius: 999px; background: #e35d5d; box-shadow: 0 0 0 2px rgba(0,0,0,.25); }
 #status.connected { background: #54d68b; }
 body.interactive #stage { outline: 2px dashed rgba(116, 192, 255, .8); outline-offset: -8px; border-radius: 18px; }
+#resize { position: absolute; inset: 6px; display: none; pointer-events: none; }
+body.interactive #resize { display: block; }
+.resize-handle { position: absolute; pointer-events: auto; background: transparent; }
+.resize-handle[data-edge="n"] { left: 14px; right: 14px; top: 0; height: 12px; cursor: ns-resize; }
+.resize-handle[data-edge="s"] { left: 14px; right: 14px; bottom: 0; height: 12px; cursor: ns-resize; }
+.resize-handle[data-edge="e"] { top: 14px; bottom: 14px; right: 0; width: 12px; cursor: ew-resize; }
+.resize-handle[data-edge="w"] { top: 14px; bottom: 14px; left: 0; width: 12px; cursor: ew-resize; }
+.resize-handle[data-edge="ne"] { top: 0; right: 0; width: 16px; height: 16px; cursor: nesw-resize; z-index: 1; }
+.resize-handle[data-edge="nw"] { top: 0; left: 0; width: 16px; height: 16px; cursor: nwse-resize; z-index: 1; }
+.resize-handle[data-edge="se"] { bottom: 0; right: 0; width: 16px; height: 16px; cursor: nwse-resize; z-index: 1; }
+.resize-handle[data-edge="sw"] { bottom: 0; left: 0; width: 16px; height: 16px; cursor: nesw-resize; z-index: 1; }

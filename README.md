@@ -102,6 +102,7 @@ La [demo](docs/demo.md) envía eventos, respeta los tiempos del director y funci
 | `ALBA_PET_PORT` | Puerto WebSocket local de la ventana PNGTuber | `8791` |
 | `ALBA_PET_LAUNCH` | Abrir la ventana PNGTuber al arrancar el bridge | `true` |
 | `ALBA_PET_TOKEN` | Token del WebSocket del pet; si está vacío usa `ALBA_TOKEN` | vacío |
+| `ALBA_PET_WINDOW` | Tamaño fijo de la ventana PNGTuber (`anchoxalto`); vacío = se ajusta al clip y recuerda el tamaño arrastrado | vacío |
 | `ALBA_BRIDGE_PORT` | Puerto del bridge (solo loopback) | `8790` |
 | `ALBA_TOKEN` | Token que deben enviar los clientes en `X-Alba-Token` | generado por ti |
 | `VTS_PROCESS_CONTROL` | Habilitar cierre/lanzamiento, siempre con confirmación por operación | `false` |

@@ -28,6 +28,8 @@ ALBA_ADAPTER=pngtuber
 ALBA_PET_PORT=8791
 ALBA_PET_LAUNCH=true
 ALBA_PET_TOKEN=
+# Tamaño fijo de la ventana, en ancho x alto (vacío = automático)
+ALBA_PET_WINDOW=
 ```
 
 - `ALBA_ADAPTER=pngtuber` es lo **único obligatorio**. Sin esa línea el
@@ -38,6 +40,9 @@ ALBA_PET_TOKEN=
   `false`, la abres a mano con `npm run pet`.
 - `ALBA_PET_TOKEN` vacío significa «usa el mismo `ALBA_TOKEN` del bridge»;
   no hace falta repetir el token.
+- `ALBA_PET_WINDOW` vacío es el recomendado: la ventana se ajusta al tamaño
+  real de tu primer clip y después recuerda el tamaño que elijas arrastrando
+  el borde. Si escribes un valor como `240x240`, ese tamaño manda siempre.
 - El alias histórico `pet` equivale a `pngtuber` en `ALBA_ADAPTER`.
 - Los JSON de `config/` se recargan solos, pero `.env` solo se lee al
   arrancar: **reinicia el bridge** después de cambiarlo.
@@ -146,8 +151,9 @@ cerrarla se cierra también el proceso de Electron; el bridge continúa vivo.
 
 Qué esperas ver en pantalla:
 
-- Una ventana **transparente, sin marco, siempre encima**, de 420×560, que
-  no aparece en la barra de tareas pero sí con un **icono en la bandeja**.
+- Una ventana **transparente, sin marco, siempre encima**, que no aparece en
+  la barra de tareas pero sí con un **icono en la bandeja**. Su tamaño se
+  ajusta al de tu clip (420×560 solo mientras no hay ningún clip).
 - Tu clip animado (o el marcador si aún no hay archivos).
 - Un **punto de estado** en la esquina superior derecha: rojo sin conexión
   y verde cuando está conectada al bridge.
@@ -185,6 +191,9 @@ abierta) y `"clients": 1` (la ventana está conectada).
   encima para volverla interactiva.
 - Arrastra con el botón izquierdo para moverla; la posición se guarda y se
   restaura si sigue dentro de una pantalla.
+- En modo interacción (`Ctrl+Alt+A`), arrastra un borde o una esquina de la
+  ventana para cambiar su tamaño: Alba se escala con la ventana. El tamaño se
+  guarda y se restaura al reiniciar.
 - El menú de la bandeja permite mostrar a Alba, reconectar o salir.
 - Los clientes de siempre (plugin de opencode, MCP, HTTP, CLI) funcionan
   igual: llegan eventos, el director cambia de escena y la ventana cambia de
@@ -206,6 +215,7 @@ abierta) y `"clients": 1` (la ventana está conectada).
 | `ALBA_PET_PORT` | Puerto WebSocket local de la ventana | `8791` |
 | `ALBA_PET_LAUNCH` | Abrir la ventana al arrancar el bridge | `true` |
 | `ALBA_PET_TOKEN` | Token de la ventana; vacío = `ALBA_TOKEN` | vacío |
+| `ALBA_PET_WINDOW` | Tamaño fijo `anchoxalto` (100–4000); vacío = automático y recordado | vacío |
 | `ALBA_TOKEN` | Token del bridge HTTP (obligatorio para todo) | — |
 | `ALBA_BRIDGE_PORT` | Puerto del bridge | `8790` |
 
@@ -259,6 +269,16 @@ existe, se mantiene el clip normal.
 - `Ctrl+Alt+A` alterna el modo interacción; también desde la bandeja.
 - Arrastra con el botón izquierdo para moverla. La posición se guarda en los
   datos de usuario de Electron y se restaura si sigue dentro de una pantalla.
+- Tamaño: la ventana es Alba. Si no defines `ALBA_PET_WINDOW`, el primer clip
+  fija el tamaño (el natural del archivo, sin ampliar) y desde ahí se
+  recuerda el que elijas. Para cambiarlo a mano, entra en modo interacción
+  (`Ctrl+Alt+A`) y arrastra un borde o una esquina; el tamaño se guarda en
+  `window.json`, junto a la posición.
+- `ALBA_PET_WINDOW=240x240` fuerza un tamaño exacto en cada arranque y manda
+  sobre el guardado. Borra el valor (o déjalo vacío) para volver a
+  redimensionar a mano.
+- La ventana transparente **no usa el redimensionado nativo de Windows**:
+  los tiradores los dibuja la propia ventana en modo interacción.
 - El menú de la bandeja permite mostrar a Alba, reconectar o salir.
 
 ### Protocolo local
@@ -302,10 +322,10 @@ npm run doctor
 ```
 
 En este modo `doctor` no intenta conectarse a VTube Studio. Comprueba el
-adapter, `ALBA_TOKEN`/`ALBA_PET_TOKEN`, `ALBA_PET_PORT`, la disponibilidad
-de Electron y los clips declarados. Los clips ausentes y Electron sin
-descargar son avisos, no errores: la ventana puede abrirse y mostrar el
-marcador.
+adapter, `ALBA_TOKEN`/`ALBA_PET_TOKEN`, `ALBA_PET_PORT`, `ALBA_PET_WINDOW`
+si está definido, la disponibilidad de Electron y los clips declarados. Los
+clips ausentes y Electron sin descargar son avisos, no errores: la ventana
+puede abrirse y mostrar el marcador.
 
 Para una prueba sin ventana ni conexiones usa `ALBA_ADAPTER=fake` o
 `npm run demo -- --fake`.
@@ -325,3 +345,6 @@ Para una prueba sin ventana ni conexiones usa `ALBA_ADAPTER=fake` o
 | No conecta | Token distinto o bridge apagado | Iguala `ALBA_PET_TOKEN`/`ALBA_TOKEN` y arranca `npm start` |
 | El punto de estado no se pone verde | La ventana perdió la conexión | Espera 1,5 s (reintenta sola) o usa «reconectar» en la bandeja |
 | No se puede arrastrar | Modo interacción desactivado | `Ctrl+Alt+A` o el menú de la bandeja |
+| La ventana queda enorme o diminuta | Tu clip tiene ese tamaño natural, o hay un tamaño guardado | Redimensiona en modo interacción o fija `ALBA_PET_WINDOW=240x240` en `.env` |
+| `ALBA_PET_WINDOW` no hace nada | Valor inválido o bridge sin reiniciar | Usa `anchoxalto` (p. ej. `240x240`), revisa `npm run doctor` y reinicia el bridge |
+| Al reiniciar vuelve al tamaño viejo | `ALBA_PET_WINDOW` sin definir y `window.json` con otro tamaño | Arrastra el borde con `Ctrl+Alt+A`; el último tamaño se guarda |

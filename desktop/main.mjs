@@ -4,13 +4,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocket } from 'ws';
 import { readEnvironment } from '../src/environment.mjs';
-import { isOnScreen, loadWindowState, saveWindowState } from './state.mjs';
+import { applyResize, isOnScreen, loadWindowState, parseSize, resolveBounds, saveWindowState, MIN_WINDOW_SIZE } from './state.mjs';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(process.env.ALBA_ROOT || path.join(dirname, '..'));
 const env = readEnvironment({ rootDir: root });
 const windowFile = () => path.join(app.getPath('userData'), 'window.json');
 const INTERACTIVE_SHORTCUT = 'Control+Alt+A';
+const RESIZE_EDGES = new Set(['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw']);
 const MIME = {
   '.png': 'image/png', '.gif': 'image/gif', '.apng': 'image/apng', '.webp': 'image/webp',
   '.webm': 'video/webm', '.mp4': 'video/mp4'
@@ -20,9 +21,16 @@ let window = null;
 let tray = null;
 let socket = null;
 let reconnectTimer = null;
+let lastState = null;
 let interactive = false;
 let dragTimer = null;
 let dragOffset = null;
+let resizeTimer = null;
+let resizeEdge = null;
+let resizeStart = null;
+let resizeBounds = null;
+let autoFit = false;
+let userSized = false;
 let saveTimer = null;
 
 protocol.registerSchemesAsPrivileged([
@@ -42,6 +50,7 @@ function send(channel, value) {
 }
 
 function setIgnore(ignore) {
+  if (ignore) stopResize(false);
   if (!window || window.isDestroyed() || interactive) return;
   window.setIgnoreMouseEvents(Boolean(ignore), { forward: true });
 }
@@ -53,8 +62,48 @@ function stopDrag() {
   if (window && !window.isDestroyed()) scheduleSave();
 }
 
+function stopResize(save = true) {
+  if (resizeTimer) clearInterval(resizeTimer);
+  resizeTimer = null;
+  resizeEdge = null;
+  resizeStart = null;
+  resizeBounds = null;
+  if (save && window && !window.isDestroyed()) scheduleSave();
+}
+
+function startResize(edge) {
+  if (!window || window.isDestroyed() || !interactive || !RESIZE_EDGES.has(edge)) return;
+  stopResize(false);
+  autoFit = false;
+  userSized = true;
+  resizeEdge = edge;
+  resizeStart = screen.getCursorScreenPoint();
+  resizeBounds = window.getBounds();
+  resizeTimer = setInterval(() => {
+    if (!window || window.isDestroyed()) return stopResize(false);
+    const cursor = screen.getCursorScreenPoint();
+    const area = screen.getDisplayMatching(window.getBounds()).workArea;
+    const next = applyResize({
+      edge: resizeEdge,
+      bounds: resizeBounds,
+      dx: cursor.x - resizeStart.x,
+      dy: cursor.y - resizeStart.y,
+      min: MIN_WINDOW_SIZE,
+      max: { width: area.width, height: area.height }
+    });
+    if (!next) return stopResize(false);
+    window.setBounds({
+      x: Math.min(Math.max(next.x, area.x), area.x + area.width - next.width),
+      y: Math.min(Math.max(next.y, area.y), area.y + area.height - next.height),
+      width: next.width,
+      height: next.height
+    });
+  }, 16);
+}
+
 function setInteractive(value) {
   interactive = Boolean(value);
+  if (!interactive) stopResize();
   if (window && !window.isDestroyed()) {
     window.setIgnoreMouseEvents(!interactive, { forward: true });
     send('pet:interactive', interactive);
@@ -84,18 +133,25 @@ function rebuildMenu() {
 }
 
 function createWindow() {
+  const requestedSize = parseSize(env.ALBA_PET_WINDOW);
+  if (requestedSize === null && String(env.ALBA_PET_WINDOW ?? '').trim()) {
+    console.warn(`[alba] ALBA_PET_WINDOW="${env.ALBA_PET_WINDOW}" no es valido; usa anchoxalto (p. ej. 240x240). Se usara el ultimo tamano guardado.`);
+  }
   const saved = loadWindowState(windowFile());
-  const fallback = { x: undefined, y: undefined, width: 420, height: 560 };
-  const bounds = saved && isOnScreen(saved, screen.getAllDisplays()) ? saved : fallback;
+  const displays = screen.getAllDisplays();
+  const bounds = resolveBounds({ size: requestedSize, saved, displays });
+  autoFit = !requestedSize && !(saved && isOnScreen(saved, displays));
   window = new BrowserWindow({
     ...bounds,
     frame: false,
     transparent: true,
-    resizable: false,
+    resizable: true,
     hasShadow: false,
     alwaysOnTop: true,
     skipTaskbar: true,
     show: false,
+    minWidth: MIN_WINDOW_SIZE,
+    minHeight: MIN_WINDOW_SIZE,
     backgroundColor: '#00000000',
     webPreferences: {
       preload: path.join(dirname, 'preload.cjs'),
@@ -109,10 +165,11 @@ function createWindow() {
   window.loadFile(path.join(dirname, 'renderer', 'index.html'));
   window.once('ready-to-show', () => window.showInactive());
   window.on('moved', scheduleSave);
-  window.on('blur', stopDrag);
+  window.on('blur', () => { stopDrag(); stopResize(); });
   window.on('closed', () => { window = null; });
   window.webContents.on('did-finish-load', () => {
     send('pet:connection', { connected: socket?.readyState === WebSocket.OPEN });
+    if (lastState) send('pet:state', lastState);
   });
 }
 
@@ -126,7 +183,9 @@ function connect() {
   socket.on('message', (raw) => {
     try {
       const message = JSON.parse(raw.toString('utf8'));
-      if (message?.type === 'hello' || message?.type === 'state') send('pet:state', message);
+      if (message?.type !== 'hello' && message?.type !== 'state') return;
+      if (message.type === 'state') lastState = message;
+      send('pet:state', message);
     } catch {}
   });
   socket.on('close', () => {
@@ -178,6 +237,27 @@ ipcMain.on('pet:drag-start', () => {
   }, 16);
 });
 ipcMain.on('pet:drag-end', stopDrag);
+ipcMain.on('pet:resize-start', (_event, edge) => startResize(String(edge)));
+ipcMain.on('pet:resize-end', () => stopResize());
+ipcMain.on('pet:clip-size', (_event, size) => {
+  if (!autoFit || userSized || !window || window.isDestroyed()) return;
+  const width = Number(size?.width);
+  const height = Number(size?.height);
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width < 1 || height < 1) return;
+  const area = screen.getDisplayMatching(window.getBounds()).workArea;
+  const scale = Math.min((area.width * 0.9) / width, (area.height * 0.9) / height, 1);
+  const nextWidth = Math.max(MIN_WINDOW_SIZE, Math.round(width * scale));
+  const nextHeight = Math.max(MIN_WINDOW_SIZE, Math.round(height * scale));
+  const bounds = window.getBounds();
+  autoFit = false;
+  window.setBounds({
+    x: Math.round(bounds.x + (bounds.width - nextWidth) / 2),
+    y: Math.round(bounds.y + (bounds.height - nextHeight) / 2),
+    width: nextWidth,
+    height: nextHeight
+  });
+  scheduleSave();
+});
 ipcMain.handle('pet:config', () => ({ interactive, port: Number(env.ALBA_PET_PORT || 8791) }));
 
 app.on('will-quit', () => {
@@ -185,6 +265,7 @@ app.on('will-quit', () => {
   if (socket) socket.close();
   if (reconnectTimer) clearTimeout(reconnectTimer);
   if (dragTimer) clearInterval(dragTimer);
+  if (resizeTimer) clearInterval(resizeTimer);
 });
 
 app.on('window-all-closed', () => app.quit());

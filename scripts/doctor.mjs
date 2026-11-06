@@ -8,6 +8,7 @@ import { createAdapter, isAdapterName, normalizeAdapterName } from '../src/adapt
 import { selectBinding } from '../src/adapters/vts/translate.mjs';
 import { createVtsClient } from '../src/adapters/vts/client.mjs';
 import { createVtsAuth, readAuthToken } from '../src/adapters/vts/auth.mjs';
+import { parseSize } from '../desktop/state.mjs';
 
 const require = createRequire(import.meta.url);
 
@@ -96,6 +97,13 @@ export async function runDoctor({
       settings.ALBA_PET_LAUNCH === 'false'
         ? 'ALBA_PET_LAUNCH=false: abre la ventana a mano con npm run pet'
         : 'Se abrira automaticamente al arrancar el bridge');
+    const petWindowRaw = String(settings.ALBA_PET_WINDOW ?? '').trim();
+    if (petWindowRaw) {
+      const petWindow = parseSize(petWindowRaw);
+      check(petWindow ? 'ok' : 'warning', 'Tamano PNGTuber', petWindow
+        ? `ALBA_PET_WINDOW=${petWindow.width}x${petWindow.height} (manda sobre el tamano guardado)`
+        : `ALBA_PET_WINDOW="${petWindowRaw}" no es valido. Usa anchoxalto entre 100 y 4000, p. ej. 240x240.`);
+    }
     const clips = inventory.assets.filter((asset) => asset.type === 'clip');
     const readyClips = clips.filter((asset) => asset.available);
     if (!clips.length) {

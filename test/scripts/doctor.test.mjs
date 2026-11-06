@@ -88,6 +88,15 @@ test('doctor reconoce el modo fake sin tocar VTS', async (t) => {
   assert.ok(report.checks.some((c) => c.name === 'Recursos' && c.status === 'warning'));
 });
 
+test('doctor valida el tamano de ventana pedido para pngtuber', async (t) => {
+  const rootDir = await fixture(t);
+  const good = await runDoctor({ rootDir, env: { ALBA_ADAPTER: 'pet', ALBA_PET_WINDOW: '240x240' }, connectTimeoutMs: 50 });
+  assert.ok(good.checks.some((c) => c.name === 'Tamano PNGTuber' && c.status === 'ok'));
+  const bad = await runDoctor({ rootDir, env: { ALBA_ADAPTER: 'pet', ALBA_PET_WINDOW: 'grande' }, connectTimeoutMs: 50 });
+  assert.ok(bad.checks.some((c) => c.name === 'Tamano PNGTuber' && c.status === 'warning'));
+  assert.match(formatDoctor(bad), /240x240/);
+});
+
 test('doctor revisa puerto, token, ventana y clips del modo pngtuber', async (t) => {
   const rootDir = await fixture(t);
   const report = await runDoctor({ rootDir, env: { ALBA_ADAPTER: 'pet', ALBA_PET_PORT: '0' }, connectTimeoutMs: 50 });

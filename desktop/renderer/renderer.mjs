@@ -5,6 +5,7 @@ const placeholder = document.getElementById('placeholder');
 const placeholderHint = document.getElementById('placeholder-hint');
 const bubble = document.getElementById('bubble');
 const statusDot = document.getElementById('status');
+const RESIZE_EDGES = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
 let interactive = false;
 let connected = false;
 let currentClip = null;
@@ -70,6 +71,13 @@ function onClipError() {
 image.addEventListener('error', onClipError);
 video.addEventListener('error', onClipError);
 
+function reportNaturalSize(width, height) {
+  if (!width || !height) return;
+  window.alba.clipSize?.({ width, height });
+}
+image.addEventListener('load', () => reportNaturalSize(image.naturalWidth, image.naturalHeight));
+video.addEventListener('loadedmetadata', () => reportNaturalSize(video.videoWidth, video.videoHeight));
+
 updatePlaceholder();
 
 function showBubble(text) {
@@ -96,7 +104,10 @@ window.alba.onConnection(({ connected: value }) => {
 window.alba.onInteractive((value) => {
   interactive = Boolean(value);
   document.body.classList.toggle('interactive', interactive);
-  if (!interactive) window.alba.setIgnoreMouseEvents(true);
+  if (!interactive) {
+    window.alba.resizeEnd?.();
+    window.alba.setIgnoreMouseEvents(true);
+  }
 });
 window.alba.getConfig().then(({ interactive: value }) => {
   interactive = Boolean(value);
@@ -116,4 +127,18 @@ pet.addEventListener('mousedown', (event) => {
   event.preventDefault();
   window.alba.dragStart();
 });
-window.addEventListener('mouseup', () => window.alba.dragEnd());
+for (const edge of RESIZE_EDGES) {
+  const handle = document.getElementById(`resize-${edge}`);
+  if (!handle) continue;
+  handle.addEventListener('pointerdown', (event) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    handle.setPointerCapture?.(event.pointerId);
+    window.alba.resizeStart(edge);
+  });
+}
+window.addEventListener('mouseup', () => {
+  window.alba.dragEnd();
+  window.alba.resizeEnd?.();
+});
