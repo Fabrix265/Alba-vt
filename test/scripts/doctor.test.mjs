@@ -77,3 +77,48 @@ test('doctor limita la espera de autorizacion y no expone respuestas con secreto
   assert.ok(!JSON.stringify(report).includes('secret-response'));
   assert.match(formatDoctor(report), /Autoriza Alba/);
 });
+test('doctor reconoce el modo fake sin tocar VTS', async (t) => {
+  const rootDir = await fixture(t);
+  const report = await runDoctor({ rootDir, env: { ALBA_ADAPTER: 'fake' }, connectTimeoutMs: 50 });
+  assert.equal(report.ok, true);
+  assert.equal(report.inventory.adapter, 'fake');
+  assert.ok(report.checks.some((c) => c.name === 'Adapter' && c.status === 'ok'));
+  assert.ok(report.checks.some((c) => c.name === 'Modo' && c.status === 'ok'));
+  assert.ok(!report.checks.some((c) => c.name === 'VTS'));
+  assert.ok(report.checks.some((c) => c.name === 'Recursos' && c.status === 'warning'));
+});
+
+test('doctor valida el tamano de ventana pedido para pngtuber', async (t) => {
+  const rootDir = await fixture(t);
+  const good = await runDoctor({ rootDir, env: { ALBA_ADAPTER: 'pet', ALBA_PET_WINDOW: '240x240' }, connectTimeoutMs: 50 });
+  assert.ok(good.checks.some((c) => c.name === 'Tamano PNGTuber' && c.status === 'ok'));
+  const bad = await runDoctor({ rootDir, env: { ALBA_ADAPTER: 'pet', ALBA_PET_WINDOW: 'grande' }, connectTimeoutMs: 50 });
+  assert.ok(bad.checks.some((c) => c.name === 'Tamano PNGTuber' && c.status === 'warning'));
+  assert.match(formatDoctor(bad), /240x240/);
+});
+
+test('doctor revisa puerto, token, ventana y clips del modo pngtuber', async (t) => {
+  const rootDir = await fixture(t);
+  const report = await runDoctor({ rootDir, env: { ALBA_ADAPTER: 'pet', ALBA_PET_PORT: '0' }, connectTimeoutMs: 50 });
+  assert.equal(report.ok, false);
+  assert.equal(report.inventory.adapter, 'pngtuber');
+  for (const name of ['Adapter', 'Puerto PNGTuber', 'Token PNGTuber', 'Ventana PNGTuber', 'Clips PNGTuber']) {
+    assert.ok(report.checks.some((c) => c.name === name), name);
+  }
+  assert.ok(report.checks.some((c) => c.name === 'Puerto PNGTuber' && c.status === 'error'));
+  assert.ok(!report.checks.some((c) => c.name === 'VTS'));
+  assert.equal(report.inventory.assets.find((asset) => asset.id === 'keyboard').supported, false);
+  assert.match(formatDoctor(report), /no aplica al adapter/);
+});
+
+test('doctor explica que las escenas sin clip usan idle y por que falta cada clip', async (t) => {
+  const rootDir = await fixture(t);
+  await fs.mkdir(path.join(rootDir, 'assets', 'pngtuber'), { recursive: true });
+  await fs.writeFile(path.join(rootDir, 'assets', 'pngtuber', 'idle.gif'), 'gif');
+  const report = await runDoctor({ rootDir, env: { ALBA_ADAPTER: 'pngtuber', ALBA_PET_PORT: '8791' }, connectTimeoutMs: 50 });
+  const clips = report.checks.find((c) => c.name === 'Clips PNGTuber');
+  assert.equal(clips.status, 'warning');
+  assert.match(clips.message, /usaran idle/);
+  assert.equal(report.inventory.assets.find((asset) => asset.id === 'idle').available, true);
+  assert.match(formatDoctor(report), /coding \(clip\): no disponible \(no existe el archivo\)/);
+});

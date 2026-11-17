@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' alba-clip: data:; media-src 'self' alba-clip:; style-src 'self' 'unsafe-inline'">
+  <title>Alba PNGTuber</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="stage">
+    <div id="pet" aria-label="Alba">
+      <img id="clip-image" alt="" draggable="false">
+      <video id="clip-video" muted autoplay playsinline loop></video>
+      <div id="placeholder" class="visible">
+        <strong>Alba PNGTuber</strong>
+        <span id="placeholder-hint">Conectando con el bridge…</span>
+      </div>
+    </div>
+    <div id="resize" aria-hidden="true">
+      <div class="resize-handle" id="resize-n" data-edge="n"></div>
+      <div class="resize-handle" id="resize-s" data-edge="s"></div>
+      <div class="resize-handle" id="resize-e" data-edge="e"></div>
+      <div class="resize-handle" id="resize-w" data-edge="w"></div>
+      <div class="resize-handle" id="resize-ne" data-edge="ne"></div>
+      <div class="resize-handle" id="resize-nw" data-edge="nw"></div>
+      <div class="resize-handle" id="resize-se" data-edge="se"></div>
+      <div class="resize-handle" id="resize-sw" data-edge="sw"></div>
+    </div>
+    <div id="bubble" role="status"></div>
+    <div id="status" title="Conexion con el bridge"></div>
+  </main>
+  <script type="module" src="renderer.mjs"></script>
+</body>
+</html>

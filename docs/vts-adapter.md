@@ -1,10 +1,10 @@
-# Adapter de VTube Studio (Paso 3)
+# Adapter de VTube Studio
 
-El bridge usa VTS por defecto. Arranca con `npm start`, con la Plugin API activada y un modelo cargado. Acepta el popup de **Alba** la primera vez: el token se guarda en el `.env` del proyecto y se reutiliza en las conexiones siguientes. Un rechazo o un timeout de autorización no provoca más popups durante esa ejecución; reinicia el bridge cuando quieras volver a autorizarlo.
+El modo `vtuber` usa VTube Studio y es el valor por defecto de `ALBA_ADAPTER`. Arranca con `npm start`, con la Plugin API activada y un modelo cargado. Acepta el popup de **Alba** la primera vez: el token se guarda en el `.env` del proyecto y se reutiliza en las conexiones siguientes. Un rechazo o un timeout de autorización no provoca más popups durante esa ejecución; reinicia el bridge cuando quieras volver a autorizarlo.
 
 El HTTP arranca aunque VTS esté cerrado o esperando autorización. La reconexión usa esperas de 0,5 s, 1 s, 2 s… hasta 30 s. Al reconectar se autentica de nuevo y aplica el último estado del director. No reproduce eventos antiguos.
 
-Para trabajar sin VTS, configura `ALBA_ADAPTER=fake` en `.env`. `VTS_PORT` y `ALBA_BRIDGE_PORT` también se leen de `.env`; los valores por defecto están en `.env.example`.
+Para trabajar sin VTS, configura `ALBA_ADAPTER=fake` en `.env`; para usar una ventana con clips, `ALBA_ADAPTER=pngtuber` y consulta la [guía PNGTuber](pngtuber.md). `VTS_PORT` y `ALBA_BRIDGE_PORT` también se leen de `.env`; los valores por defecto están en `.env.example`.
 
 ## Modelos y parámetros
 
@@ -37,6 +37,6 @@ Los props se cargan por id de `assets.json` y se retiran por el ID de su instanc
 
 `npm test` incluye un servidor WebSocket local que simula VTS: autenticación, correlación de respuestas, timeouts, reconexión, cambios de modelo, hotkeys, parámetros, permisos y carga/retirada de props. Las pruebas no requieren el VTS real ni usan su token.
 
-Doctor, clientes y demo están implementados. El cierre/lanzamiento vive en `src/platform/vts-process.mjs`, desactivado por defecto y sujeto a confirmación por operación. El adapter VTS declara `processControl: false` porque no gestiona procesos; `/state.processControl` indica las operaciones habilitadas en la capa de plataforma. Sin control configurado, `deep_sleep` degrada a `sleep` y explica que VTS sigue abierto. Consulta el [CLI](../clients/cli/README.md) y la [revisión de Fase 0](phase-0-review.md).
+Doctor, clientes y demo están implementados. El cierre/lanzamiento vive en `src/platform/vts-process.mjs`, desactivado por defecto y sujeto a confirmación por operación. El adapter VTS declara `processControl: false` porque no gestiona procesos; `/state.processControl` indica las operaciones habilitadas en la capa de plataforma. Sin control configurado, `deep_sleep` degrada a `sleep` y explica que VTS sigue abierto. Consulta el [CLI](../clients/cli/README.md) y la [revisión de Fase 0](history/phase-0-review.md). Para conectar un modelo nuevo, sigue [Añadir un modelo Live2D](adding-a-model.md).
 
 Referencia del protocolo: [API oficial de VTube Studio](https://github.com/DenchiSoft/VTubeStudio), [permisos](https://github.com/DenchiSoft/VTubeStudio/tree/master/Permissions).

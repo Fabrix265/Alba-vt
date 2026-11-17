@@ -26,7 +26,7 @@ export function createVtsAdapter({
   const auth = createVtsAuth({ envPath, token, timeoutMs: authTimeoutMs, logger });
   const items = createVtsItems({ client, rootDir, warn: warnOnce });
   let catalog = { model: null, hotkeys: [], parameters: [], permissions: [] };
-  let capabilities = { hotkeys: false, parameters: false, items: false, modelDetection: false, processControl: false };
+  let capabilities = { hotkeys: false, parameters: false, items: false, clips: false, modelDetection: false, processControl: false };
   let running = false;
   let ready = false;
   let generation = 0;
@@ -67,7 +67,7 @@ export function createVtsAdapter({
     lastInjectionAt = Number.NEGATIVE_INFINITY;
     items.reset();
     catalog = { model: null, hotkeys: [], parameters: [], permissions: [] };
-    capabilities = { hotkeys: false, parameters: false, items: false, modelDetection: false, processControl: false };
+    capabilities = { hotkeys: false, parameters: false, items: false, clips: false, modelDetection: false, processControl: false };
   }
 
   function scheduleReconnect() {
@@ -307,7 +307,7 @@ export function createVtsAdapter({
   }
 
   return {
-    name: 'vts', connect, disconnect, applyState, setMouth,
+    name: 'vtuber', assetTypes: Object.freeze(['item']), connect, disconnect, applyState, setMouth,
     speak() {}, // The core speech service supplies synthetic mouth frames.
     async refresh() { await refresh(); await render(); },
     get connected() { return ready; },

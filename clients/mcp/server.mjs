@@ -44,7 +44,19 @@ export async function serve({ input = process.stdin, output = process.stdout, cl
           instructions: 'Herramientas voluntarias para Alba. No autorices cierres o lanzamientos de VTS sin permiso explicito del usuario.' };
       } else {
         if (!ready) throw Object.assign(new Error('Completa initialize y notifications/initialized'), { rpcCode: -32002 });
-        if (request.method === 'tools/list') result = { tools: toolDefinitions };
+        if (request.method === 'tools/list') {
+          let tools = toolDefinitions;
+          let timer;
+          const snapshot = await Promise.race([
+            client.state().catch(() => null),
+            new Promise((resolve) => { timer = setTimeout(() => resolve(null), 800); timer.unref?.(); })
+          ]);
+          clearTimeout(timer);
+          if (snapshot?.state?.adapter?.capabilities && snapshot.state.adapter.capabilities.hotkeys !== true) {
+            tools = tools.filter((tool) => tool.name !== 'avatar_hotkey');
+          }
+          result = { tools };
+        }
         else if (request.method === 'tools/call') {
           const args = validateToolCall(request.params);
           try { result = await callTool(client, request.params.name, args); }

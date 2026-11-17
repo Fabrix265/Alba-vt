@@ -2,6 +2,7 @@ import { normalizeEvent, validateIntent, EventError } from './core/events.mjs';
 import { createRulesEngine } from './core/rules-engine.mjs';
 import { createDirector } from './core/director.mjs';
 import { createSpeech } from './core/speech.mjs';
+import { createActivity } from './core/activity.mjs';
 
 // Orchestration shared by HTTP and the demo. Client identities do not affect behavior.
 export function createApp({ config: initial, adapter, processControl, now = Date.now }) {
@@ -9,6 +10,7 @@ export function createApp({ config: initial, adapter, processControl, now = Date
   let rules = createRulesEngine({ rules: config.rules, now });
   const director = createDirector({ scenes: config.scenes, persona: config.persona, now });
   const speech = createSpeech({ onFrame: (value) => adapter.setMouth(value) });
+  const activity = createActivity({ now });
   const applyState = (state) => {
     if (state.asleep) speech.stop();
     adapter.applyState(state, { scenes: config.scenes, bindings: config.bindings, assets: config.assets });
@@ -25,12 +27,15 @@ export function createApp({ config: initial, adapter, processControl, now = Date
     return { ...director.getState(), commands: config.commands.commands, intents: director.listIntents(),
       limits: config.persona.limits, adapter: { name: adapter.name,
         ...(adapter.getStatus?.() ?? { connected: adapter.connected, capabilities: adapter.capabilities }) },
-      processControl: processControl?.status ?? { canClose: false, canLaunch: false } };
+      processControl: processControl?.status ?? { canClose: false, canLaunch: false },
+      activity: activity.snapshot() };
   }
   function handleEvent(raw) {
     return serialize(() => {
       const event = normalizeEvent(raw);
-      if (director.getState().asleep) return { event, ignored: true, reason: 'asleep', decision: null };
+      const asleep = director.getState().asleep;
+      activity.record(event, { ignored: asleep });
+      if (asleep) return { event, ignored: true, reason: 'asleep', decision: null };
       if (event.type === 'say') {
         adapter.speak({ text: event.text ?? '' });
         const result = speech.speak({ text: event.text ?? '' });
@@ -62,10 +67,14 @@ export function createApp({ config: initial, adapter, processControl, now = Date
       let notice;
       if (intent === 'deep_sleep') {
         if (processControl?.status.canClose) await processControl.close({ confirmed: true });
-        else notice = 'Control de procesos desactivado: Alba se pausa; VTS sigue abierto';
+        else notice = adapter.name === 'pngtuber'
+          ? 'Control de procesos desactivado: Alba se pausa; la ventana sigue abierta'
+          : 'Control de procesos desactivado: Alba se pausa; VTS sigue abierto';
       }
       if (launch) await processControl.launch({ confirmed: true });
-      else if (intent === 'wake' && state.deepSleep) notice = 'Abre VTube Studio manualmente; Alba reconecta cuando aparezca';
+      else if (intent === 'wake' && state.deepSleep) notice = adapter.name === 'pngtuber'
+        ? 'Alba vuelve a idle; la ventana sigue abierta'
+        : 'Abre VTube Studio manualmente; Alba reconecta cuando aparezca';
       // Disabled process control degrades to ordinary sleep without claiming VTS closed.
       const effectiveIntent = intent === 'deep_sleep' && !processControl?.status.canClose ? 'sleep' : intent;
       const applied = director.applyIntent(effectiveIntent, { props });
@@ -78,7 +87,9 @@ export function createApp({ config: initial, adapter, processControl, now = Date
     updateConfig(next) {
       config = next;
       rules = createRulesEngine({ rules: next.rules, now });
+      const before = JSON.stringify(director.getState());
       director.updateConfig({ scenes: next.scenes, persona: next.persona });
+      if (JSON.stringify(director.getState()) === before) applyState(director.getState());
     },
     stop: () => speech.stop()
   };

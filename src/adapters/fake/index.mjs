@@ -6,6 +6,7 @@ export function createFakeAdapter() {
     hotkeys: true,
     parameters: true,
     items: true,
+    clips: false,
     modelDetection: true,
     processControl: false
   });
@@ -53,6 +54,7 @@ export function createFakeAdapter() {
 
   return {
     name: 'fake',
+    assetTypes: Object.freeze(['item']),
     capabilities,
     connect,
     disconnect,

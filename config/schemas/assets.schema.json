@@ -17,6 +17,12 @@
           "additionalProperties": { "type": "number" }
         },
         "size": { "type": "number", "minimum": 0 },
+        "loop": { "type": "boolean" },
+        "fit": { "enum": ["contain", "cover", "stretch"] },
+        "options": {
+          "type": "object",
+          "additionalProperties": true
+        },
         "description": { "type": "string" }
       },
       "additionalProperties": false

@@ -6,8 +6,7 @@ import { createConfigLoader } from './core/config-loader.mjs';
 import { createApp } from './app.mjs';
 import { createVtsProcess } from './platform/vts-process.mjs';
 import { createAssetRegistry } from './core/assets.mjs';
-import { createFakeAdapter } from './adapters/fake/index.mjs';
-import { createVtsAdapter } from './adapters/vts/index.mjs';
+import { createAdapter, isAdapterName, normalizeAdapterName } from './adapters/registry.mjs';
 import { createBridgeServer } from './api/server.mjs';
 import { log, warn, error } from './core/log.mjs';
 
@@ -27,24 +26,22 @@ try {
   process.exit(1);
 }
 
-const adapterName = process.env.ALBA_ADAPTER ?? defaults.ALBA_ADAPTER;
-if (!['vts', 'fake'].includes(adapterName)) {
-  error('ALBA_ADAPTER debe ser vts o fake');
+const env = { ...defaults, ...process.env };
+const adapterName = env.ALBA_ADAPTER ?? defaults.ALBA_ADAPTER;
+if (!isAdapterName(adapterName)) {
+  error('ALBA_ADAPTER debe ser vtuber, pngtuber o fake');
   process.exit(1);
 }
-const adapter = adapterName === 'fake' ? createFakeAdapter() : createVtsAdapter({
-  port: Number(process.env.VTS_PORT ?? defaults.VTS_PORT), rootDir: root,
-  token: process.env.VTS_AUTH_TOKEN,
-  requestItemPermission: process.env.VTS_REQUEST_ITEM_PERMISSION === 'true'
-});
-let assets = createAssetRegistry({ assets: config.assets, rootDir: root });
+const adapter = createAdapter(normalizeAdapterName(adapterName), { rootDir: root, env });
+let assets = createAssetRegistry({ assets: config.assets, rootDir: root, assetTypes: adapter.assetTypes });
 assets.report();
 
-const app = createApp({ config, adapter, processControl: createVtsProcess({ env: { ...defaults, ...process.env } }) });
+const processControl = adapter.name === 'vtuber' ? createVtsProcess({ env }) : undefined;
+const app = createApp({ config, adapter, processControl });
 loader.onChange((next) => {
   config = next;
   app.updateConfig(next);
-  assets = createAssetRegistry({ assets: next.assets, rootDir: root });
+  assets = createAssetRegistry({ assets: next.assets, rootDir: root, assetTypes: adapter.assetTypes });
   assets.report();
   log('config recargada');
 });

@@ -140,7 +140,8 @@ test('sin modelo ni permiso no envia hotkeys, parametros ni props; avisa una vez
 });
 
 async function assetFixture(t) {
-  const dir = await fs.mkdtemp(path.join(rootDir, '.vts-items-test-'));
+  await fs.mkdir(path.join(rootDir, 'assets'), { recursive: true });
+  const dir = await fs.mkdtemp(path.join(rootDir, 'assets', '.vts-items-test-'));
   t.after(() => fs.rm(dir, { recursive: true, force: true }));
   await fs.writeFile(path.join(dir, 'prop.png'), Buffer.from('test image payload'));
   const next = structuredClone(context);
@@ -213,7 +214,7 @@ test('PNG ausentes, tipos futuros y formatos invalidos se omiten sin romper', as
   };
   for (let i = 0; i < 2; i += 1) await adapter.applyState(state('coding', ['missing', 'future', 'invalid']), next);
   assert.equal(requests(mock, 'ItemLoadRequest').length, 0);
-  assert.equal(warnings.filter((m) => m.includes('prop missing')).length, 1);
+  assert.equal(warnings.filter((m) => m.includes('falta el archivo del recurso missing')).length, 1);
   assert.equal(adapter.connected, true);
 });
 

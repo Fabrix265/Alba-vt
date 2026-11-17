@@ -5,6 +5,8 @@ import { once } from 'node:events';
 import { createInterface } from 'node:readline';
 import { createBridgeServer } from '../../src/api/server.mjs';
 import { projectRoot } from '../../src/environment.mjs';
+import { PassThrough } from 'node:stream';
+import { serve } from '../../clients/mcp/server.mjs';
 
 async function start(t) {
   const events = [];
@@ -94,4 +96,23 @@ test('stdio cierra ante una linea sin limite en vez de acumular memoria', { time
   const closed = once(p.child, 'close');
   p.child.stdin.end('x'.repeat(65537));
   assert.equal((await closed)[0], 1);
+});
+
+test('tools/list oculta avatar_hotkey cuando el adapter no los soporta', async () => {
+  const input = new PassThrough();
+  const output = new PassThrough();
+  const lines = [];
+  output.on('data', (chunk) => lines.push(...chunk.toString('utf8').trim().split('\n').filter(Boolean)));
+  const task = serve({
+    input, output,
+    client: { state: async () => ({ state: { adapter: { name: 'pngtuber', capabilities: { hotkeys: false } } } }) }
+  });
+  input.write(JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: initialize }) + '\n');
+  input.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n');
+  input.write(JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/list' }) + '\n');
+  input.end();
+  await task;
+  const list = JSON.parse(lines.at(-1));
+  assert.equal(list.result.tools.length, 5);
+  assert.equal(list.result.tools.some((tool) => tool.name === 'avatar_hotkey'), false);
 });
