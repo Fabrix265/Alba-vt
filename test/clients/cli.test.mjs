@@ -113,3 +113,19 @@ test('hotkeys explica que el modo PNGTuber no expone hotkeys', async () => {
   assert.match(output[0], /PNGTuber|pngtuber/);
   assert.match(output[0], /clips/);
 });
+
+test('alba status dice si llegaron eventos y de que agente', async (t) => {
+  const { options, app, output } = await setup(t);
+  assert.equal(await runCli(['status'], options), 0);
+  assert.ok(output.some((line) => /todavia no llego ninguno/.test(line)));
+  output.length = 0;
+  await app.handleEvent({ source: 'opencode', type: 'tool.start', tool: 'bash' });
+  await app.handleEvent({ source: 'opencode', type: 'session.idle' });
+  assert.equal(await runCli(['status'], options), 0);
+  assert.ok(output.some((line) => /^Modo: fake/.test(line)));
+  assert.ok(output.some((line) => /opencode: 2 \| ultimo session\.idle ahora mismo/.test(line)), output.join('\n'));
+  const { state } = await options.client.state();
+  assert.equal(state.activity.total, 2);
+  assert.equal(state.activity.lastEvent.source, 'opencode');
+  assert.equal('text' in state.activity.lastEvent, false);
+});

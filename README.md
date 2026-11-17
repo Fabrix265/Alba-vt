@@ -4,7 +4,7 @@
 
 Alba es un personaje 2D que reacciona en tiempo real a lo que hace tu agente: se pone a teclear cuando programa, se enoja o se pone triste cuando hay errores, celebra cuando termina, y se va a dormir cuando se lo pides. Puede ser un modelo Live2D en [VTube Studio](https://denchisoft.com/) o una ventana PNGTuber transparente en tu escritorio. No es un chatbot aparte: es la cara del agente que ya usas.
 
-> **Estado:** Fase 0 cerrada y modos VTuber/PNGTuber implementados como fases 1–4. Incluye bridge, adapter VTube Studio, adapter PNGTuber con ventana Electron, doctor por modo, plugin de opencode, CLI, HTTP, MCP por stdio sin SDK y demo. Consulta la [revisión de Fase 0](docs/phase-0-review.md) y la [guía PNGTuber](docs/pngtuber.md). Proyecto no oficial: no está afiliado a VTube Studio, Live2D, opencode ni Anthropic.
+> **Estado:** Fase 0 cerrada y modo PNGTuber terminado. Incluye bridge, adapter VTube Studio, adapter PNGTuber con ventana Electron, doctor por modo, plugin de opencode, CLI, HTTP, MCP por stdio sin SDK y demo. Todavía sin voz ni instalador (ver [Roadmap](#roadmap)). ¿Primera vez? Empieza por [Primeros pasos](docs/getting-started.md). Proyecto no oficial: no está afiliado a VTube Studio, Live2D, opencode ni Anthropic.
 
 ## Qué hace
 
@@ -37,6 +37,25 @@ Alba es un personaje 2D que reacciona en tiempo real a lo que hace tu agente: se
 - El **plugin del agente es tonto**: solo reenvía eventos por HTTP. La lógica vive en el bridge, así que cambias el comportamiento sin reiniciar el agente.
 - El bridge envía **intenciones**, no comandos de VTube Studio. Cada adapter las traduce a su propio medio.
 
+## Documentación
+
+| Quiero… | Guía |
+|---|---|
+| Ponerla en marcha desde cero | [Primeros pasos](docs/getting-started.md) |
+| Usar el modo PNGTuber | [Modo PNGTuber](docs/pngtuber.md) |
+| Usar el modo VTuber | [Adapter de VTube Studio](docs/vts-adapter.md) |
+| Saber si está conectada a opencode | [Conectar opencode](docs/opencode.md) |
+| Crear expresiones, reacciones y comandos propios | [Crea tus propias cosas](docs/customize.md) |
+| Conectar otro modelo Live2D | [Añadir un modelo](docs/adding-a-model.md) |
+| Añadir clips o props | [Añadir un recurso](docs/adding-an-asset.md) |
+| Crear o renombrar comandos `alba …` | [Añadir y personalizar comandos](docs/adding-a-command.md) |
+| Conectar otro agente | [Añadir un cliente](docs/adding-a-client.md) |
+| Probar que todo funciona | [Cómo probar Alba](docs/testing.md) |
+| Consultar todos los campos de config | [Referencia de configuración](docs/config-reference.md) |
+| Ver la demo | [Demo](docs/demo.md) |
+| Ideas en diseño | [Panel de control](docs/ideas/panel.md) |
+| Notas de etapas anteriores | [Historial](docs/history/README.md) |
+
 ## Requisitos
 
 - Node.js 24 o superior
@@ -53,6 +72,8 @@ cd alba-vt
 npm install
 cp .env.example .env      # en Windows (cmd): copy .env.example .env
 ```
+
+Abre `.env` y escribe una clave larga e inventada en `ALBA_TOKEN` (los clientes la usan para hablar con el bridge). [Primeros pasos](docs/getting-started.md) muestra cómo generarla.
 
 ### 1. Elegir modo
 
@@ -123,7 +144,7 @@ Si un JSON queda inválido, se conserva la última configuración válida y se r
 | `commands.json` | Comandos del CLI `alba`: frase → intención |
 | `schemas/` | JSON Schemas para validar y autocompletar los archivos anteriores |
 
-Los schemas describen los campos admitidos; las reglas iniciales se explican en [`docs/demo.md`](docs/demo.md). La referencia completa de configuración queda para la fase final.
+Los schemas describen los campos admitidos; la [referencia de configuración](docs/config-reference.md) explica cada uno y las reglas iniciales se explican en la [demo](docs/demo.md).
 
 ## Uso
 
@@ -145,6 +166,7 @@ alba susto         # Shock Sign; alias: buu
 alba sacudida      # Anim Shake; alias: gelatina
 alba reset         # Remove Expressions; respeta sleep y las duraciones mínimas
 alba list          # muestra todos los comandos disponibles
+alba status        # modo, escena y qué agentes enviaron eventos (¿está conectada?)
 alba hotkeys       # nombre e ID de los hotkeys del modelo cargado (solo vtuber)
 ```
 
@@ -166,10 +188,12 @@ El control de procesos está desactivado por defecto. Para habilitarlo configura
 
 ### Conectar tu agente
 
-El proyecto incluye el cargador local `.opencode/plugins/alba.js` y `opencode.json` para el servidor MCP. Se activan al iniciar opencode desde la raíz; no hace falta instalar paquetes globales. Reinicia el bridge después de actualizar código; los JSON sí se recargan en caliente.
+El proyecto incluye el cargador local `.opencode/plugins/alba.js` y `opencode.json` para el servidor MCP. Se activan al iniciar opencode **desde la raíz de este proyecto**; no hace falta instalar paquetes globales. Reinicia el bridge después de actualizar código; los JSON sí se recargan en caliente.
+
+Para comprobar que está conectado, usa opencode y ejecuta `npm run alba -- status`: debe aparecer una línea `opencode`. Paso a paso y solución de problemas en [Conectar opencode](docs/opencode.md).
 
 - **opencode:** el [plugin](clients/opencode/README.md) reenvía `tool.execute.before/after` y `session.idle` al bridge sin argumentos ni salidas privadas.
-- **MCP:** el [servidor por stdio](clients/mcp/README.md) expone `avatar_status`, `avatar_say`, `avatar_scene`, `avatar_sleep` y `avatar_wake`, más `avatar_hotkey` solo en modo `vtuber`, sin dependencias nuevas. Son voluntarias: el agente solo las usa si se lo indicas. Las llamadas reales desde el agente quedan pendientes de [verificación manual](docs/integration-validation.md).
+- **MCP:** el [servidor por stdio](clients/mcp/README.md) expone `avatar_status`, `avatar_say`, `avatar_scene`, `avatar_sleep` y `avatar_wake`, más `avatar_hotkey` solo en modo `vtuber`, sin dependencias nuevas. Son voluntarias: el agente solo las usa si se lo indicas. Para probarlas, sigue [Conectar opencode → MCP](docs/opencode.md#5-comprueba-el-mcp-opcional).
 - **HTTP:** cualquier cosa que haga POST. Ejemplos en [`clients/http/examples.md`](clients/http/examples.md).
 
 ```bash
@@ -183,13 +207,14 @@ Endpoints: `POST /event`, `POST /intent`, `GET /state`, `GET /stream` (SSE).
 
 ## Personalizar
 
-- **Cambiar de modelo:** carga otro en VTube Studio y añade su entrada en `config/bindings.json`. Consulta los [bindings del adapter](docs/vts-adapter.md).
-- **Cambiar los clips PNGTuber:** coloca tus archivos en `assets/pngtuber/`, regístralos en `config/assets.json` y asígnalos con `clip`/`talkingClip` en `config/scenes.json`. Consulta la [guía PNGTuber](docs/pngtuber.md).
-- **Agregar un comando:** añade una entrada en `config/commands.json` según su schema.
-- **Agregar un prop o recurso:** coloca el PNG en `assets/props/` y registra su id en `config/assets.json`. Si falta, se omite con un aviso por causa.
-- **Agregar un cliente nuevo:** traduce sus eventos al esquema canónico; el cliente HTTP compartido está en `clients/http/client.mjs`.
+Todo se hace editando JSON de `config/`, sin tocar código. La guía [Crea tus propias cosas](docs/customize.md) recorre un ejemplo completo (una expresión nueva con su comando y su reacción automática) en los dos modos.
 
-La [guía para añadir comandos](docs/adding-a-command.md) y la [guía PNGTuber](docs/pngtuber.md) ya están disponibles. Las demás guías completas de extensión permanecen reservadas para la fase final.
+- **Nueva expresión o reacción:** escena en `scenes.json` + hotkey en `bindings.json` (VTuber) o clip en `assets.json` (PNGTuber) + regla o comando. Ver [Crea tus propias cosas](docs/customize.md).
+- **Cambiar de modelo:** [Añadir un modelo Live2D](docs/adding-a-model.md).
+- **Cambiar los clips PNGTuber:** [guía PNGTuber](docs/pngtuber.md#2-agrega-tus-clips).
+- **Agregar un comando:** [Añadir y personalizar comandos](docs/adding-a-command.md).
+- **Agregar un prop o recurso:** [Añadir un recurso](docs/adding-an-asset.md). Si falta, se omite con un aviso por causa.
+- **Agregar un cliente nuevo:** [Añadir un cliente](docs/adding-a-client.md).
 
 ## Solución de problemas
 
@@ -200,10 +225,11 @@ La [guía para añadir comandos](docs/adding-a-command.md) y la [guía PNGTuber]
 | Una intención no hace nada | El modelo no tiene ese hotkey | Revisa `doctor` y añade el binding de ese modelo |
 | El teclado o la taza no aparecen | Falta el PNG o el permiso de items | `doctor` lista qué falta; sin ellos todo lo demás funciona |
 | Alba parpadea con cada comando | Reglas sin cooldown | Sube `cooldownMs` o `debounceMs` en `rules.json` |
+| Alba no reacciona a opencode | opencode abierto desde otra carpeta, o bridge apagado | `npm run alba -- status` y [Conectar opencode](docs/opencode.md) |
 | VTube Studio cerrado | — | El bridge sigue vivo y registra la degradación; Alba vuelve al reabrirlo |
 | La ventana PNGTuber muestra un marcador | Falta el clip o el archivo no es compatible | Revisa `npm run doctor`, el nombre en `assets.json` y el formato |
 | La ventana PNGTuber no abre | Electron no está instalado o el puerto está ocupado | `npm install`, revisa `ALBA_PET_PORT` y ejecuta `npm run pet` |
-| No puedo arrastrar o hacer clic en la ventana | Modo interacción desactivado | Usa `Ctrl+Alt+A` o el menú de la bandeja |
+| No puedo arrastrar la ventana | El cursor está fuera del clip | Arrastra desde la figura o usa `Ctrl+Alt+A` |
 
 ## Estructura del proyecto
 
@@ -217,7 +243,7 @@ desktop/    ventana Electron, renderer y persistencia de posición
 clients/    opencode/ · mcp/ · http/ · cli/
 scripts/    doctor y demo
 test/       pruebas
-docs/       guías
+docs/       guías (history/: notas de etapas anteriores; ideas/: diseños pendientes)
 assets/     modelos, PNG y clips (ignorados por git)
 ```
 
@@ -233,11 +259,12 @@ El **código** es [MIT](LICENSE). El **arte no se distribuye con este repositori
 
 ## Roadmap
 
-- **Fase 0:** núcleo, adapter de VTube Studio, doctor, integración con opencode y MCP, demo, dormir/despertar.
-- **Fases 1–4:** registro de adapters, clips en assets, recarga en caliente, adapter PNGTuber, ventana Electron, diagnóstico por modo y documentación.
+- ✅ **Fase 0:** núcleo, adapter de VTube Studio, doctor, integración con opencode y MCP, demo, dormir/despertar.
+- ✅ **Modo PNGTuber:** registro de adapters, clips en assets, recarga en caliente, adapter PNGTuber, ventana Electron, diagnóstico por modo, `alba status` y guías de uso. (En el historial de commits aparece como "Fase 1–3".)
 - **Fase 2 (voz):** TTS (edge-tts, con SAPI de Windows como respaldo) y lip-sync por amplitud de audio.
+- **Panel de control:** una ventana para manejar a Alba sin terminal (cambiar de modo, lanzar expresiones, ver la conexión). Diseño en [docs/ideas/panel.md](docs/ideas/panel.md).
 - **Más adelante:** overlay propio para props, recursos de sonido, atajo global para dormir, más clientes (Claude Code, Codex).
-- **Final:** instalación con un comando, guías completas, tests y CI, paquete de avatar compartible.
+- **Final:** instalación con un comando (incluido el plugin global de opencode para usarla en cualquier proyecto), portabilidad fuera de Windows, paquete de avatar compartible.
 
 ## Contribuir
 

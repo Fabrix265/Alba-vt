@@ -110,3 +110,15 @@ test('doctor revisa puerto, token, ventana y clips del modo pngtuber', async (t)
   assert.equal(report.inventory.assets.find((asset) => asset.id === 'keyboard').supported, false);
   assert.match(formatDoctor(report), /no aplica al adapter/);
 });
+
+test('doctor explica que las escenas sin clip usan idle y por que falta cada clip', async (t) => {
+  const rootDir = await fixture(t);
+  await fs.mkdir(path.join(rootDir, 'assets', 'pngtuber'), { recursive: true });
+  await fs.writeFile(path.join(rootDir, 'assets', 'pngtuber', 'idle.gif'), 'gif');
+  const report = await runDoctor({ rootDir, env: { ALBA_ADAPTER: 'pngtuber', ALBA_PET_PORT: '8791' }, connectTimeoutMs: 50 });
+  const clips = report.checks.find((c) => c.name === 'Clips PNGTuber');
+  assert.equal(clips.status, 'warning');
+  assert.match(clips.message, /usaran idle/);
+  assert.equal(report.inventory.assets.find((asset) => asset.id === 'idle').available, true);
+  assert.match(formatDoctor(report), /coding \(clip\): no disponible \(no existe el archivo\)/);
+});

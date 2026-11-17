@@ -9,6 +9,7 @@ import { selectBinding } from '../src/adapters/vts/translate.mjs';
 import { createVtsClient } from '../src/adapters/vts/client.mjs';
 import { createVtsAuth, readAuthToken } from '../src/adapters/vts/auth.mjs';
 import { parseSize } from '../desktop/state.mjs';
+import { CLIP_REASONS, resolveClip } from '../src/adapters/pngtuber/resolve.mjs';
 
 const require = createRequire(import.meta.url);
 
@@ -63,6 +64,11 @@ export async function runDoctor({
     inventory.assets = registry.list().map((id) => {
       const type = config.assets[id].type;
       const supported = !adapter?.assetTypes || adapter.assetTypes.includes(type);
+      if (supported && type === 'clip') {
+        // Misma validacion que usa el adapter: carpeta, formato, tamano y existencia.
+        const { clip, reason } = resolveClip({ ...config.assets[id], id }, { rootDir });
+        return { id, type, supported, available: Boolean(clip), reason: clip ? null : CLIP_REASONS[reason] ?? reason };
+      }
       const available = supported ? Boolean(registry.resolve(id)) : false;
       return { id, type, supported, available };
     });
@@ -106,12 +112,15 @@ export async function runDoctor({
     }
     const clips = inventory.assets.filter((asset) => asset.type === 'clip');
     const readyClips = clips.filter((asset) => asset.available);
+    const idleReady = readyClips.some((asset) => asset.id === 'idle');
     if (!clips.length) {
       check('warning', 'Clips PNGTuber', 'No hay clips declarados. La ventana mostrara el marcador hasta que agregues assets.');
     } else if (!readyClips.length) {
-      check('warning', 'Clips PNGTuber', `${clips.length} clips declarados, ninguno disponible. La ventana mostrara el marcador.`);
+      check('warning', 'Clips PNGTuber', `${clips.length} clips declarados, ninguno disponible. La ventana mostrara el marcador; empieza por idle.`);
     } else if (readyClips.length < clips.length) {
-      check('warning', 'Clips PNGTuber', `${readyClips.length} de ${clips.length} clips disponibles; el resto usara el marcador.`);
+      check('warning', 'Clips PNGTuber', idleReady
+        ? `${readyClips.length} de ${clips.length} clips disponibles; las escenas sin clip propio usaran idle.`
+        : `${readyClips.length} de ${clips.length} clips disponibles, pero falta idle: las escenas sin clip mostraran el marcador.`);
     } else {
       check('ok', 'Clips PNGTuber', `${readyClips.length} clips disponibles para la ventana`);
     }
@@ -203,7 +212,8 @@ export function formatDoctor(report) {
   if (report.inventory.assets.length) {
     lines.push('\nRecursos:');
     for (const a of report.inventory.assets) {
-      const state = a.supported === false ? 'no aplica al adapter' : a.available ? 'presente' : 'ausente/no compatible';
+      const state = a.supported === false ? 'no aplica al adapter'
+        : a.available ? 'presente' : a.reason ? `no disponible (${a.reason})` : 'ausente/no compatible';
       lines.push(`  ${a.id} (${a.type}): ${state}`);
     }
   }

@@ -1,23 +1,28 @@
 import fs from 'node:fs';
-import path from 'node:path';
+import { resolveAssetPath } from '../../core/paths.mjs';
 import { clipKind } from './formats.mjs';
 
-const MAX_CLIP_BYTES = 30 * 1024 * 1024;
+export const MAX_CLIP_BYTES = 30 * 1024 * 1024;
 
-function insideRoot(rootDir, file) {
-  const relative = path.relative(rootDir, file);
-  return relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative);
-}
+// Motivos legibles para doctor y los avisos del adapter.
+export const CLIP_REASONS = Object.freeze({
+  'not-a-clip': 'no es un recurso de tipo clip',
+  'no-root': 'falta la carpeta del proyecto',
+  'outside-assets': 'debe estar dentro de assets/',
+  format: 'formato no admitido',
+  'not-a-file': 'no es un archivo',
+  'too-large': 'pesa mas de 30 MiB',
+  missing: 'no existe el archivo',
+  unreadable: 'no se pudo leer'
+});
 
 export function resolveClip(resource, { rootDir } = {}) {
   if (!resource || resource.type !== 'clip' || typeof resource.file !== 'string') {
     return { clip: null, reason: 'not-a-clip' };
   }
   if (!rootDir) return { clip: null, reason: 'no-root' };
-  const absolute = path.resolve(rootDir, resource.file);
-  if (!insideRoot(path.resolve(rootDir), absolute)) {
-    return { clip: null, reason: 'outside-root' };
-  }
+  const absolute = resolveAssetPath(rootDir, resource.file);
+  if (!absolute) return { clip: null, reason: 'outside-assets' };
   const kind = clipKind(absolute);
   if (!kind) return { clip: null, reason: 'format' };
   try {
@@ -42,19 +47,16 @@ export function resolveClip(resource, { rootDir } = {}) {
 export function selectClip({ state, context = {}, rootDir, talking = false } = {}) {
   const assets = context.assets ?? {};
   const scenes = context.scenes?.scenes ?? context.scenes ?? {};
-  const scene = scenes[state?.effective] ?? {};
+  const sceneName = state?.effective ?? 'idle';
+  const scene = scenes[sceneName] ?? {};
   const preferred = talking ? scene.talkingClip : null;
-  const requestedId = preferred ?? scene.clip ?? state?.effective ?? 'idle';
+  const requestedId = preferred ?? scene.clip ?? sceneName;
+  // Orden: clip de hablar -> clip de la escena -> idle -> marcador.
   const candidates = [...new Set([requestedId, preferred ? scene.clip : null, 'idle'].filter(Boolean))];
-  let fallback = false;
-  for (const id of candidates) {
+  for (const [index, id] of candidates.entries()) {
     const resource = assets[id] ? { ...assets[id], id } : null;
     const { clip } = resolveClip(resource, { rootDir });
-    if (clip) return {
-      scene: state?.effective ?? 'idle', requestedId, clip,
-      missing: fallback ? requestedId : null, reason: null
-    };
-    fallback = true;
+    if (clip) return { scene: sceneName, requestedId, clip, missing: index > 0 ? requestedId : null, reason: null };
   }
-  return { scene: state?.effective ?? 'idle', requestedId, clip: null, missing: requestedId, reason: 'missing' };
+  return { scene: sceneName, requestedId, clip: null, missing: requestedId, reason: 'missing' };
 }

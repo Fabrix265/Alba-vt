@@ -5,6 +5,9 @@ del escritorio, usando clips en lugar de un modelo Live2D. No necesita VTube
 Studio ni Live2D: el bridge sigue recibiendo los mismos eventos y el director
 elige la escena; el adapter solo traduce esa escena a un clip.
 
+¿Quieres crear expresiones nuevas? Sigue [Crea tus propias cosas](customize.md).
+¿Quieres comprobarlo todo? Sigue [Cómo probar Alba](testing.md#3a-modo-pngtuber).
+
 ## Requisitos
 
 - Node.js 24 o superior.
@@ -114,6 +117,8 @@ con `idle` para arrancar y el resto es opcional.
 
 - Imagen: `.png`, `.gif`, `.apng`, `.webp`. Video: `.webm`, `.mp4`.
 - Máximo 30 MiB por archivo.
+- El archivo debe estar dentro de `assets/` (normalmente `assets/pngtuber/`);
+  una ruta fuera de esa carpeta se rechaza.
 - `fit`: `contain` (por defecto, respeta proporción), `cover` (llena el
   espacio recortando) o `stretch` (deforma hasta llenar).
 - `loop`: `true` salvo que escribas `false`.
@@ -187,14 +192,16 @@ abierta) y `"clients": 1` (la ventana está conectada).
 ### 5. Interacción y reacciones
 
 - `Ctrl+Alt+A` alterna el modo interacción (también desde el icono de la
-  bandeja). Por defecto la ventana **no captura el ratón**: pasas el cursor
-  encima para volverla interactiva.
+  bandeja). Fuera de ese modo, la ventana **solo captura el ratón sobre el
+  clip**: en el resto de la ventana los clics pasan al escritorio. Recorta tus
+  clips al personaje para que el área sea lo más ajustada posible.
 - Arrastra con el botón izquierdo para moverla; la posición se guarda y se
   restaura si sigue dentro de una pantalla.
 - En modo interacción (`Ctrl+Alt+A`), arrastra un borde o una esquina de la
   ventana para cambiar su tamaño: Alba se escala con la ventana. El tamaño se
   guarda y se restaura al reiniciar.
 - El menú de la bandeja permite mostrar a Alba, reconectar o salir.
+- Solo hay una ventana a la vez: si ya está abierta, `npm run pet` no abre otra.
 - Los clientes de siempre (plugin de opencode, MCP, HTTP, CLI) funcionan
   igual: llegan eventos, el director cambia de escena y la ventana cambia de
   clip.
@@ -264,8 +271,9 @@ existe, se mantiene el clip normal.
 ### La ventana
 
 - Transparente, sin marco, siempre encima, fuera de la barra de tareas.
-- Por defecto no captura el ratón; al pasar sobre la figura se vuelve
-  interactiva para poder arrastrarla.
+- Fuera del modo interacción solo captura el ratón sobre el rectángulo donde
+  se dibuja el clip (o sobre el marcador); ahí puedes arrastrarla. Fuera de
+  ese rectángulo los clics pasan al escritorio.
 - `Ctrl+Alt+A` alterna el modo interacción; también desde la bandeja.
 - Arrastra con el botón izquierdo para moverla. La posición se guarda en los
   datos de usuario de Electron y se restaura si sigue dentro de una pantalla.
@@ -290,7 +298,7 @@ hub responde con:
 { "type": "hello", "version": 1, "mode": "pngtuber", "port": 8791 }
 ```
 
-y después retransmite cada cambio de escena:
+y después retransmite cada cambio de escena (mensaje `state`):
 
 ```json
 {
@@ -311,7 +319,16 @@ y después retransmite cada cambio de escena:
 }
 ```
 
-El cliente puede enviar `{"type":"ping"}` y recibe `{"type":"pong"}`. El
+Cuando alguien usa `say` (por ejemplo `avatar_say`), el hub envía además un
+mensaje puntual para el globo de diálogo, recortado a 280 caracteres:
+
+```json
+{ "type": "say", "version": 1, "text": "Hola, estoy aquí" }
+```
+
+El cliente puede enviar `{"type":"ping"}` y recibe `{"type":"pong"}`. El hub
+rechaza conexiones que traen cabecera `Origin` (páginas web) y, si hay token,
+las que no lo traen. El
 estado se envía también a quien se conecte tarde, así que abrir la ventana
 después del bridge no pierde la escena actual.
 
@@ -344,7 +361,10 @@ Para una prueba sin ventana ni conexiones usa `ALBA_ADAPTER=fake` o
 | El clip no cambia con la demo | La ventana está en otro bridge/puerto | Revisa `clients: 1` en `/state` y `ALBA_PET_PORT` |
 | No conecta | Token distinto o bridge apagado | Iguala `ALBA_PET_TOKEN`/`ALBA_TOKEN` y arranca `npm start` |
 | El punto de estado no se pone verde | La ventana perdió la conexión | Espera 1,5 s (reintenta sola) o usa «reconectar» en la bandeja |
-| No se puede arrastrar | Modo interacción desactivado | `Ctrl+Alt+A` o el menú de la bandeja |
+| No se puede arrastrar | El cursor está fuera del clip | Arrastra desde la figura, o activa `Ctrl+Alt+A` |
+| Un margen vacío bloquea clics del escritorio | El clip tiene mucho lienzo transparente alrededor | Recorta el lienzo del clip al personaje |
+| No aparece el globo de diálogo | Alba dormida, o el texto llegó vacío | `npm run alba -- ring ring` y vuelve a probar `avatar_say` |
+| ¿Está conectada a opencode? | — | `npm run alba -- status`; ver [Conectar opencode](opencode.md) |
 | La ventana queda enorme o diminuta | Tu clip tiene ese tamaño natural, o hay un tamaño guardado | Redimensiona en modo interacción o fija `ALBA_PET_WINDOW=240x240` en `.env` |
 | `ALBA_PET_WINDOW` no hace nada | Valor inválido o bridge sin reiniciar | Usa `anchoxalto` (p. ej. `240x240`), revisa `npm run doctor` y reinicia el bridge |
 | Al reiniciar vuelve al tamaño viejo | `ALBA_PET_WINDOW` sin definir y `window.json` con otro tamaño | Arrastra el borde con `Ctrl+Alt+A`; el último tamaño se guarda |

@@ -15,7 +15,8 @@ Tools: `avatar_status`, `avatar_say({text})`, `avatar_scene({scene,props?})`,
 no un nombre/id de VTS, para respetar el director y los modelos intercambiables;
 solo se anuncia en el modo `vtuber`, porque PNGTuber no usa hotkeys.
 Consulta primero avatar_status para conocer las intenciones y capacidades.
-say usa lip-sync sintetico, sin audio. Dormida, Alba ignora say y eventos.
+say usa lip-sync sintetico, sin audio; en modo `pngtuber` muestra ademas el texto
+en un globo. Dormida, Alba ignora say y eventos.
 
 Las tools se usan cuando el usuario las solicita. Para deep_sleep y lanzamiento
 desde wake, pregunta al usuario antes de enviar confirmed=true. La confirmacion

@@ -6,10 +6,24 @@ const placeholderHint = document.getElementById('placeholder-hint');
 const bubble = document.getElementById('bubble');
 const statusDot = document.getElementById('status');
 const RESIZE_EDGES = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
+// assets.json usa contain/cover/stretch; CSS llama "fill" a stretch.
+const OBJECT_FIT = { contain: 'contain', cover: 'cover', stretch: 'fill' };
 let interactive = false;
 let connected = false;
 let currentClip = null;
 let bubbleTimer = null;
+let ignoring = null;
+
+// Evita mandar el mismo valor por IPC en cada movimiento del raton.
+function setIgnore(value) {
+  if (value === ignoring) return;
+  ignoring = value;
+  window.alba.setIgnoreMouseEvents(value);
+}
+
+function objectFit(fit) {
+  return OBJECT_FIT[fit] ?? 'contain';
+}
 
 function clipUrl(file) {
   return `alba-clip://local/${file.split(/[\\/]/).map(encodeURIComponent).join('/')}`;
@@ -52,12 +66,12 @@ function renderClip(clip) {
   const url = clipUrl(clip.file);
   if (clip.kind === 'video') {
     video.loop = clip.loop !== false;
-    video.style.objectFit = clip.fit || 'contain';
+    video.style.objectFit = objectFit(clip.fit);
     video.src = url;
     video.classList.add('visible');
     video.play().catch(() => {});
   } else {
-    image.style.objectFit = clip.fit || 'contain';
+    image.style.objectFit = objectFit(clip.fit);
     image.src = url;
     image.classList.add('visible');
   }
@@ -106,7 +120,8 @@ window.alba.onInteractive((value) => {
   document.body.classList.toggle('interactive', interactive);
   if (!interactive) {
     window.alba.resizeEnd?.();
-    window.alba.setIgnoreMouseEvents(true);
+    ignoring = null;
+    setIgnore(true);
   }
 });
 window.alba.getConfig().then(({ interactive: value }) => {
@@ -114,13 +129,44 @@ window.alba.getConfig().then(({ interactive: value }) => {
   document.body.classList.toggle('interactive', interactive);
 });
 
+// Rectangulo donde realmente se dibuja el clip dentro de su elemento, segun object-fit.
+function drawnRect(element, width, height) {
+  const box = element.getBoundingClientRect();
+  if (!width || !height || !box.width || !box.height) return box;
+  const fit = element.style.objectFit || 'contain';
+  if (fit === 'fill') return box;
+  const scale = fit === 'cover'
+    ? Math.max(box.width / width, box.height / height)
+    : Math.min(box.width / width, box.height / height);
+  const drawnWidth = Math.min(box.width, width * scale);
+  const drawnHeight = Math.min(box.height, height * scale);
+  return {
+    left: box.left + (box.width - drawnWidth) / 2,
+    top: box.top + (box.height - drawnHeight) / 2,
+    right: box.left + (box.width + drawnWidth) / 2,
+    bottom: box.top + (box.height + drawnHeight) / 2
+  };
+}
+
+// Fuera del modo interaccion, la ventana solo captura el raton sobre el clip
+// (o el marcador); el resto deja pasar los clics al escritorio.
+function isOverAlba(event) {
+  if (placeholder.classList.contains('visible')) return Boolean(event.target?.closest?.('#placeholder'));
+  const media = video.classList.contains('visible') ? video : image.classList.contains('visible') ? image : null;
+  if (!media) return false;
+  const rect = media === video
+    ? drawnRect(video, video.videoWidth, video.videoHeight)
+    : drawnRect(image, image.naturalWidth, image.naturalHeight);
+  return event.clientX >= rect.left && event.clientX <= rect.right
+    && event.clientY >= rect.top && event.clientY <= rect.bottom;
+}
+
 document.addEventListener('mousemove', (event) => {
   if (interactive) return;
-  const over = Boolean(event.target?.closest?.('.hit'));
-  window.alba.setIgnoreMouseEvents(!over);
+  setIgnore(!isOverAlba(event));
 });
 document.addEventListener('mouseleave', () => {
-  if (!interactive) window.alba.setIgnoreMouseEvents(true);
+  if (!interactive) setIgnore(true);
 });
 pet.addEventListener('mousedown', (event) => {
   if (event.button !== 0) return;

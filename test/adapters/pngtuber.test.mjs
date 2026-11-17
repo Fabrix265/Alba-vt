@@ -115,3 +115,47 @@ test('el launcher respeta ALBA_PET_LAUNCH=false y no inicia procesos', () => {
   assert.equal(launcher.start(), false);
   assert.equal(launcher.running, false);
 });
+
+test('PNGTuber manda el globo de dialogo sin reemplazar el ultimo estado', async (t) => {
+  const { adapter, assets, scenes, messages, waitState } = await connectedAdapter(t);
+  adapter.applyState({ effective: 'idle', asleep: false, deepSleep: false }, { scenes, assets });
+  await waitState((message) => message.scene === 'idle');
+  adapter.speak({ text: '  hola\n mundo  ' });
+  adapter.speak({ text: '   ' });
+  adapter.speak({ text: 'x'.repeat(1000) });
+  for (let i = 0; i < 100 && messages.filter((m) => m.type === 'say').length < 2; i += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  const says = messages.filter((message) => message.type === 'say');
+  assert.equal(says.length, 2);
+  assert.equal(says[0].text, 'hola mundo');
+  assert.equal(says[1].text.length, 280);
+
+  // Una ventana que se conecta tarde recibe el estado, no un globo viejo.
+  const port = adapter.getStatus().port;
+  const late = new WebSocket(`ws://127.0.0.1:${port}?token=pet-token`);
+  t.after(() => late.close());
+  const received = [];
+  late.on('message', (raw) => received.push(JSON.parse(raw.toString('utf8'))));
+  for (let i = 0; i < 100 && received.length < 2; i += 1) await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.deepEqual(received.map((message) => message.type), ['hello', 'state']);
+});
+
+test('PNGTuber rechaza conexiones de paginas web aunque traigan el token', async (t) => {
+  const { adapter } = await connectedAdapter(t);
+  const port = adapter.getStatus().port;
+  const browser = new WebSocket(`ws://127.0.0.1:${port}?token=pet-token`, { origin: 'https://example.com' });
+  const code = await new Promise((resolve) => browser.once('close', resolve));
+  assert.equal(code, 1008);
+});
+
+test('PNGTuber solo acepta clips dentro de assets/', async () => {
+  const { resolveClip } = await import('../../src/adapters/pngtuber/resolve.mjs');
+  const { rootDir } = fixture();
+  fs.writeFileSync(path.join(rootDir, 'outside.webm'), 'webm');
+  assert.equal(resolveClip({ id: 'a', type: 'clip', file: 'outside.webm' }, { rootDir }).reason, 'outside-assets');
+  assert.equal(resolveClip({ id: 'b', type: 'clip', file: 'assets/../outside.webm' }, { rootDir }).reason, 'outside-assets');
+  assert.equal(resolveClip({ id: 'c', type: 'clip', file: 'assets/pngtuber/idle.txt' }, { rootDir }).reason, 'format');
+  assert.equal(resolveClip({ id: 'd', type: 'clip', file: 'assets/pngtuber/idle.webm' }, { rootDir }).reason, null);
+  fs.rmSync(rootDir, { recursive: true, force: true });
+});

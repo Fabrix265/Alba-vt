@@ -2,7 +2,7 @@ import { createCapabilities } from '../../core/capabilities.mjs';
 import { warnOnce } from '../../core/log.mjs';
 import { createHub } from './hub.mjs';
 import { createPetLauncher } from './launcher.mjs';
-import { stateMessage } from './protocol.mjs';
+import { sayMessage, stateMessage } from './protocol.mjs';
 import { selectClip } from './resolve.mjs';
 
 const DEFAULT_PORT = 8791;
@@ -40,10 +40,10 @@ export function createPngtuberAdapter({
     const selection = selectClip({ state, context, rootDir, talking });
     if (!selection.clip) {
       logger.warn?.(`pngtuber-clip:${selection.requestedId}`,
-        `PNGTuber: falta el clip ${selection.requestedId} en assets/pngtuber; se muestra el marcador`);
+        `PNGTuber: no hay clip para ${selection.requestedId} ni para idle; la ventana muestra el marcador`);
     } else if (selection.missing) {
       logger.warn?.(`pngtuber-clip:${selection.missing}`,
-        `PNGTuber: falta el clip ${selection.missing}; uso ${selection.clip.id}`);
+        `PNGTuber: falta el clip ${selection.missing}; se usa ${selection.clip.id} (revisa npm run doctor)`);
     }
     const message = stateMessage({ state, scene: selection.scene, clip: selection.clip, talking });
     const signature = JSON.stringify(message);
@@ -93,7 +93,10 @@ export function createPngtuberAdapter({
     disconnect,
     applyState,
     setMouth,
-    speak() {},
+    speak({ text } = {}) {
+      const message = sayMessage(text);
+      if (message) socketHub?.notify?.(message);
+    },
     refresh() { return render(); },
     get connected() { return connected; },
     getStatus() {

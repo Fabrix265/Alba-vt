@@ -140,7 +140,8 @@ test('sin modelo ni permiso no envia hotkeys, parametros ni props; avisa una vez
 });
 
 async function assetFixture(t) {
-  const dir = await fs.mkdtemp(path.join(rootDir, '.vts-items-test-'));
+  await fs.mkdir(path.join(rootDir, 'assets'), { recursive: true });
+  const dir = await fs.mkdtemp(path.join(rootDir, 'assets', '.vts-items-test-'));
   t.after(() => fs.rm(dir, { recursive: true, force: true }));
   await fs.writeFile(path.join(dir, 'prop.png'), Buffer.from('test image payload'));
   const next = structuredClone(context);

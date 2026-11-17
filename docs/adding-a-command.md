@@ -6,6 +6,8 @@ Si no tienes el bin `alba` instalado, todos los ejemplos funcionan sustituyendo
 nada globalmente. `npm link` modifica el entorno fuera del proyecto y requiere
 aprobación aparte.
 
+Para crear una expresión completa (escena, hotkey o clip, comando y regla) en cualquiera de los dos modos, empieza por [Crea tus propias cosas](customize.md).
+
 Esta guía usa el modo `vtuber`: `alba hotkeys` y los bindings solo aplican a
 VTube Studio. En `pngtuber` los comandos siguen funcionando, pero cada escena
 elige un clip en `config/scenes.json`; consulta la [guía PNGTuber](pngtuber.md).
@@ -37,7 +39,7 @@ comandos ya existían; los demás añaden expresiones y alias fáciles de record
 | `sacudida`, `gelatina` | `shake` | Activa la animación Anim Shake; escena de 3 s. |
 | `reset` | `reset` | Remove Expressions; escena de 1,2 s y regreso a la actividad anterior. |
 
-`list`, `hotkeys`, `help` y `--help` son funciones de la CLI, no entradas del JSON.
+`list`, `status`, `hotkeys`, `help` y `--help` son funciones de la CLI, no entradas del JSON.
 `hotkeys` consulta el catálogo del modelo cargado que mantiene el bridge y muestra
 nombre e ID, incluso los hotkeys sin binding. Un nombre vacío aparece como
 `(sin nombre)`. No activa expresiones. Si cambias de modelo o sus hotkeys, deja
@@ -77,7 +79,7 @@ está dormida, usa primero `alba ring ring`.
 Cambia únicamente la clave `"apapacho"` por `"mimos"`. Guarda y usa `alba mimos`;
 `alba apapacho` deja de existir. Para conservar ambos, duplica la entrada con
 el segundo nombre. Los nombres distinguen mayúsculas y minúsculas; usa minúsculas
-y espacios simples. No uses los nombres reservados `list`, `hotkeys`, `help`,
+y espacios simples. No uses los nombres reservados `list`, `status`, `hotkeys`, `help`,
 `--help` ni la opción `--yes` como comandos de expresión.
 
 ## 3. Elegir una expresión y su duración

@@ -4,6 +4,7 @@ Con `npm start` activo, desde el proyecto:
 
 ```sh
 npm run alba -- list
+npm run alba -- status
 npm run alba -- hotkeys
 npm run alba -- amor
 npm run alba -- reset
@@ -11,6 +12,9 @@ npm run alba -- good night
 npm run alba -- ring ring
 npm run alba -- lights out
 ```
+
+`alba status` resume el modo, la escena y que agentes enviaron eventos y cuando;
+sirve para comprobar que opencode esta conectado ([guia](../../docs/opencode.md)).
 
 Tambien funciona `node clients/cli/alba.mjs <frase>`. El bin `alba` esta declarado
 en package.json; la instalacion global con `npm link` requiere aprobacion aparte.

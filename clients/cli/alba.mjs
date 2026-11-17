@@ -10,14 +10,67 @@ async function askConfirmation() {
   finally { rl.close(); }
 }
 
+export function formatAgo(ms) {
+  if (!Number.isFinite(ms)) return 'hace un momento';
+  const seconds = Math.round(ms / 1000);
+  if (seconds < 2) return 'ahora mismo';
+  if (seconds < 60) return `hace ${seconds} s`;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `hace ${minutes} min`;
+  return `hace ${Math.round(minutes / 60)} h`;
+}
+
+function describeAdapter(adapter = {}) {
+  if (adapter.name === 'pngtuber') {
+    const clients = adapter.clients ?? 0;
+    if (!adapter.connected) return 'pngtuber | el canal de la ventana no pudo arrancar (revisa ALBA_PET_PORT)';
+    return clients > 0
+      ? `pngtuber | ventana conectada${clients > 1 ? ` (${clients} ventanas)` : ''}`
+      : 'pngtuber | ventana sin conectar (abre npm run pet o revisa ALBA_PET_LAUNCH)';
+  }
+  if (adapter.name === 'vtuber') {
+    if (!adapter.connected) return 'vtuber | VTube Studio desconectado (abrelo y activa la Plugin API)';
+    return adapter.model?.modelLoaded
+      ? `vtuber | VTube Studio conectado, modelo ${adapter.model.modelName}`
+      : 'vtuber | VTube Studio conectado, sin modelo cargado';
+  }
+  return `${adapter.name ?? 'desconocido'} | sin avatar visible`;
+}
+
+// Resumen legible de /state: modo, escena y que agentes han enviado eventos.
+export function formatStatus(state) {
+  const lines = [
+    'Bridge: activo',
+    `Modo: ${describeAdapter(state.adapter)}`,
+    `Alba: ${state.asleep ? (state.deepSleep ? 'en sueno profundo' : 'dormida (ignora eventos)') : 'despierta'} | escena ${state.effective}`
+  ];
+  const sources = Object.entries(state.activity?.sources ?? {});
+  if (!sources.length) {
+    lines.push('Eventos: todavia no llego ninguno.',
+      '  Si usas opencode, abrelo desde la carpeta de Alba y pidele algo; consulta docs/opencode.md.');
+    return lines;
+  }
+  lines.push(`Eventos recibidos (${state.activity.total} en total):`);
+  for (const [source, entry] of sources) {
+    const last = entry.last;
+    const detail = `${last.type}${last.tool ? ` (${last.tool})` : ''}${last.ignored ? ', ignorado porque dormia' : ''}`;
+    lines.push(`  ${source}: ${entry.count} | ultimo ${detail} ${formatAgo(last.agoMs)}`);
+  }
+  return lines;
+}
+
 export async function runCli(args, { client = createBridgeClient(), write = console.log, confirm = askConfirmation } = {}) {
   const yes = args.includes('--yes');
   const phrase = args.filter((arg) => arg !== '--yes').join(' ').trim();
   if (!phrase || phrase === '--help' || phrase === 'help') {
-    write('Uso: alba <frase> [--yes] | alba list | alba hotkeys\nLocal: npm run alba -- <frase>\n--yes: solo cuando el usuario autoriza expresamente esta operacion.');
+    write('Uso: alba <frase> [--yes] | alba list | alba status | alba hotkeys\nLocal: npm run alba -- <frase>\n--yes: solo cuando el usuario autoriza expresamente esta operacion.');
     return 0;
   }
   const { state } = await client.state();
+  if (phrase === 'status') {
+    for (const line of formatStatus(state)) write(line);
+    return 0;
+  }
   if (phrase === 'hotkeys') {
     const adapter = state.adapter;
     if (adapter?.capabilities?.hotkeys !== true) {

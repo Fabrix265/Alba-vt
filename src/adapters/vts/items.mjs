@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
+import { assetsRoot, isInside } from '../../core/paths.mjs';
 
 export function createVtsItems({ client, rootDir, warn }) {
   const loaded = new Map();
@@ -41,11 +42,8 @@ export function createVtsItems({ client, rootDir, warn }) {
       }
       try {
         const file = await fs.realpath(path.resolve(rootDir, asset.file));
-        const root = await fs.realpath(rootDir);
-        const relative = path.relative(root, file);
-        if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
-          throw new Error('archivo fuera del proyecto');
-        }
+        const root = await fs.realpath(assetsRoot(rootDir));
+        if (file === root || !isInside(root, file)) throw new Error('el archivo debe estar dentro de assets/');
         const extension = path.extname(file).toLowerCase();
         const stat = await fs.stat(file);
         if (!['.png', '.jpg', '.gif'].includes(extension) || !stat.isFile() || stat.size >= 5 * 1024 * 1024) {

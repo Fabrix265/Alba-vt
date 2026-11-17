@@ -1,4 +1,4 @@
-# Demo de Fase 0
+# Demo
 
 Con `npm start` activo y Alba despierta, ejecuta `npm run demo` en otra terminal.
 Envia exclusivamente eventos canonicos por HTTP al bridge local:

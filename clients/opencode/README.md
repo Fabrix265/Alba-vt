@@ -1,5 +1,7 @@
 # Plugin local de opencode
 
+Para activarlo y comprobar que funciona, sigue [Conectar opencode](../../docs/opencode.md).
+
 Arranca `npm start` y abre opencode desde la raiz del proyecto. El cargador
 `.opencode/plugins/alba.js` activa el plugin sin instalar paquetes ni tocar la
 configuracion global. Lee el puerto y token de `.env` del repositorio.

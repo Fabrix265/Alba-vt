@@ -104,3 +104,12 @@ test('un clip que no se puede decodificar cae al marcador y no deja la ventana v
   assert.equal(elements['clip-image'].classList.contains('visible'), false);
   assert.equal(elements.placeholder.classList.contains('visible'), true);
 });
+
+test('el globo muestra el texto de say y fit stretch se traduce a fill', async () => {
+  const { elements, sendState } = await loadRenderer();
+  sendState({ type: 'say', text: 'hola' });
+  assert.equal(elements.bubble.textContent, 'hola');
+  assert.equal(elements.bubble.classList.contains('visible'), true);
+  sendState({ type: 'state', clip: { kind: 'image', file: 'assets/pngtuber/idle.png', fit: 'stretch' } });
+  assert.equal(elements['clip-image'].style.objectFit, 'fill');
+});

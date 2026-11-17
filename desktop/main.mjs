@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocket } from 'ws';
 import { readEnvironment } from '../src/environment.mjs';
+import { resolveAssetPath } from '../src/core/paths.mjs';
 import { applyResize, isOnScreen, loadWindowState, parseSize, resolveBounds, saveWindowState, MIN_WINDOW_SIZE } from './state.mjs';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -37,13 +38,9 @@ protocol.registerSchemesAsPrivileged([
   { scheme: 'alba-clip', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }
 ]);
 
-function rootFile(relative) {
-  const absolute = path.resolve(root, relative);
-  const assets = path.resolve(root, 'assets');
-  const inside = path.relative(assets, absolute);
-  if (inside.startsWith('..') || path.isAbsolute(inside)) return null;
-  return absolute;
-}
+// Solo se sirven archivos de assets/, igual que valida el adapter.
+const rootFile = (relative) => resolveAssetPath(root, relative);
+const FORWARDED = new Set(['hello', 'state', 'say']);
 
 function send(channel, value) {
   if (window && !window.isDestroyed()) window.webContents.send(channel, value);
@@ -183,7 +180,7 @@ function connect() {
   socket.on('message', (raw) => {
     try {
       const message = JSON.parse(raw.toString('utf8'));
-      if (message?.type !== 'hello' && message?.type !== 'state') return;
+      if (!FORWARDED.has(message?.type)) return;
       if (message.type === 'state') lastState = message;
       send('pet:state', message);
     } catch {}
@@ -196,7 +193,14 @@ function connect() {
   socket.on('error', () => {});
 }
 
+// Una sola ventana de Alba: si ya hay una (abierta por el bridge o por
+// npm run pet), la segunda se cierra y muestra la existente.
+const primary = app.requestSingleInstanceLock();
+if (!primary) app.quit();
+app.on('second-instance', () => { window?.showInactive(); });
+
 app.whenReady().then(async () => {
+  if (!primary) return;
   protocol.handle('alba-clip', async (request) => {
     try {
       const url = new URL(request.url);
