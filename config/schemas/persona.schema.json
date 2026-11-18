@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "persona.schema.json",
+  "title": "persona.json",
+  "type": "object",
+  "required": ["name"],
+  "properties": {
+    "name": { "type": "string", "minLength": 1 },
+    "character": { "type": "string" },
+    "limits": {
+      "type": "object",
+      "properties": {
+        "minStateDurationMs": { "type": "number", "minimum": 0 },
+        "maxTransientsPerMinute": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

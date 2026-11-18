@@ -1,0 +1,9 @@
+{
+  "$schema": "./schemas/persona.schema.json",
+  "name": "Alba",
+  "character": "Companera tranquila que acompana mientras programas; reacciona sin interrumpir.",
+  "limits": {
+    "minStateDurationMs": 1200,
+    "maxTransientsPerMinute": 6
+  }
+}

@@ -1,18 +1,19 @@
 # Alba-vt
 
-**Una presencia VTuber para tu agente de código.**
+**Una presencia VTuber o PNGTuber para tu agente de código.**
 
-Alba es un personaje 2D (Live2D, renderizado por [VTube Studio](https://denchisoft.com/)) que reacciona en tiempo real a lo que hace tu agente: se pone a teclear cuando programa, se enoja o se pone triste cuando hay errores, celebra cuando termina, y se va a dormir cuando se lo pides. No es un chatbot aparte: es la cara del agente que ya usas.
+Alba es un personaje 2D que reacciona en tiempo real a lo que hace tu agente: se pone a teclear cuando programa, se enoja o se pone triste cuando hay errores, celebra cuando termina, y se va a dormir cuando se lo pides. Puede ser un modelo Live2D en [VTube Studio](https://denchisoft.com/) o una ventana PNGTuber transparente en tu escritorio. No es un chatbot aparte: es la cara del agente que ya usas.
 
-> **Estado:** en desarrollo (Fase 0). Proyecto no oficial: no está afiliado a VTube Studio, Live2D, opencode ni Anthropic.
+> **Estado:** Fase 0 cerrada y modo PNGTuber terminado. Incluye bridge, adapter VTube Studio, adapter PNGTuber con ventana Electron, doctor por modo, plugin de opencode, CLI, HTTP, MCP por stdio sin SDK y demo. Todavía sin voz ni instalador (ver [Roadmap](#roadmap)). ¿Primera vez? Empieza por [Primeros pasos](docs/getting-started.md). Proyecto no oficial: no está afiliado a VTube Studio, Live2D, opencode ni Anthropic.
 
 ## Qué hace
 
 - **Reacciona a tu agente.** Eventos como "ejecutando un comando", "editando un archivo" o "error" se convierten en expresiones, movimientos y objetos en pantalla.
+- **Dos modos, el mismo motor.** `vtuber` usa Live2D y VTube Studio; `pngtuber` usa clips y una ventana de escritorio. El modo `fake` sirve para demos y tests sin abrir nada.
 - **Tranquila por diseño.** Cooldowns, duraciones mínimas y *debounce* evitan que parpadee con cada evento.
-- **Dormir y despertar.** `sleep` la pausa con VTube Studio abierto; `deep_sleep` cierra VTube Studio para liberar recursos.
-- **Todo es configuración.** Comportamientos, comandos, props y modelos se agregan editando JSON, con recarga en caliente. No hay que tocar código.
-- **Cambia de avatar.** Cada modelo tiene sus propios *bindings*; si le falta una expresión, Alba degrada con parámetros estándar en vez de romperse.
+- **Dormir y despertar.** `sleep` la pausa; `deep_sleep` puede cerrar VTube Studio si habilitas el control de procesos y confirmas esa operación. Por defecto se degrada a `sleep`.
+- **Todo es configuración.** Comportamientos, comandos, props, clips y modelos se agregan editando JSON, con recarga en caliente. No hay que tocar código.
+- **Cambia de avatar.** Cada modelo Live2D tiene sus propios *bindings*; si le falta una expresión, Alba degrada con parámetros estándar en vez de romperse. En PNGTuber, cada escena elige un clip.
 - **Agnóstico al agente.** El núcleo no sabe quién le habla. Hoy: opencode. Pensado para Claude Code, Codex y cualquier cosa que pueda hacer un POST.
 
 ## Cómo funciona
@@ -28,18 +29,40 @@ Alba es un personaje 2D (Live2D, renderizado por [VTube Studio](https://denchiso
         rules.json ► director de escena (base · activity · transient · props)
                                           │  (intenciones: "coding", "error"…)
                                           ▼
-                        adapters/vts  ──►  VTube Studio (WebSocket, puerto 8001)
+                        adapter vtuber  ──►  VTube Studio (WebSocket, puerto 8001)
+                        adapter pngtuber ──►  ventana Electron (WebSocket, puerto 8791)
+                        adapter fake    ──►  registro para demo y tests
 ```
 
 - El **plugin del agente es tonto**: solo reenvía eventos por HTTP. La lógica vive en el bridge, así que cambias el comportamiento sin reiniciar el agente.
-- El bridge envía **intenciones**, no comandos de VTube Studio. El adapter las traduce según el modelo cargado.
+- El bridge envía **intenciones**, no comandos de VTube Studio. Cada adapter las traduce a su propio medio.
+
+## Documentación
+
+| Quiero… | Guía |
+|---|---|
+| Ponerla en marcha desde cero | [Primeros pasos](docs/getting-started.md) |
+| Usar el modo PNGTuber | [Modo PNGTuber](docs/pngtuber.md) |
+| Usar el modo VTuber | [Adapter de VTube Studio](docs/vts-adapter.md) |
+| Saber si está conectada a opencode | [Conectar opencode](docs/opencode.md) |
+| Crear expresiones, reacciones y comandos propios | [Crea tus propias cosas](docs/customize.md) |
+| Conectar otro modelo Live2D | [Añadir un modelo](docs/adding-a-model.md) |
+| Añadir clips o props | [Añadir un recurso](docs/adding-an-asset.md) |
+| Crear o renombrar comandos `alba …` | [Añadir y personalizar comandos](docs/adding-a-command.md) |
+| Conectar otro agente | [Añadir un cliente](docs/adding-a-client.md) |
+| Probar que todo funciona | [Cómo probar Alba](docs/testing.md) |
+| Consultar todos los campos de config | [Referencia de configuración](docs/config-reference.md) |
+| Ver la demo | [Demo](docs/demo.md) |
+| Ideas en diseño | [Panel de control](docs/ideas/panel.md) |
+| Notas de etapas anteriores | [Historial](docs/history/README.md) |
 
 ## Requisitos
 
 - Node.js 24 o superior
-- [VTube Studio](https://store.steampowered.com/app/1325860/VTube_Studio/) instalado, con un modelo cargado
 - Un agente compatible (opencode por ahora) o cualquier cliente HTTP
-- Opcional: imágenes PNG para los props (teclado, taza…)
+- **Modo VTuber:** [VTube Studio](https://store.steampowered.com/app/1325860/VTube_Studio/) instalado, con un modelo cargado
+- **Modo PNGTuber:** clips propios en `assets/pngtuber/` y Electron (se instala como dependencia opcional con `npm install`)
+- Opcional en VTuber: imágenes PNG para los props (teclado, taza…)
 
 ## Instalación
 
@@ -50,13 +73,23 @@ npm install
 cp .env.example .env      # en Windows (cmd): copy .env.example .env
 ```
 
-### 1. Habilitar la Plugin API de VTube Studio
+Abre `.env` y escribe una clave larga e inventada en `ALBA_TOKEN` (los clientes la usan para hablar con el bridge). [Primeros pasos](docs/getting-started.md) muestra cómo generarla.
+
+### 1. Elegir modo
+
+En `.env`, `ALBA_ADAPTER` acepta `vtuber` (VTube Studio), `pngtuber` (ventana de escritorio con clips) o `fake` (sin ventanas ni conexiones). Los alias antiguos `vts` y `pet` siguen funcionando. El modo PNGTuber se explica en su [guía](docs/pngtuber.md), que incluye la [puesta en marcha paso a paso](docs/pngtuber.md#puesta-en-marcha-paso-a-paso): qué líneas agregar al `.env`, qué clips poner en `assets/pngtuber/`, cómo levantar el bridge y cómo comprobar que se ve a Alba.
+
+### 2. Habilitar la Plugin API de VTube Studio
+
+Solo para `ALBA_ADAPTER=vtuber`.
 
 1. Abre VTube Studio y carga un modelo.
 2. Ve a ⚙ → página principal de configuración.
 3. Activa **Allow Plugin API access** (puerto 8001 por defecto).
 
-### 2. Verificar y autorizar
+### 3. Verificar y autorizar
+
+Ejecuta `npm run doctor` para verificar la instalacion y autorizar Alba. Usa `npm run doctor -- --json` si necesitas el informe estructurado. Los avisos sobre PNG o permisos opcionales no impiden usarla; los errores devuelven un codigo de salida distinto de cero.
 
 ```bash
 npm run doctor
@@ -64,14 +97,18 @@ npm run doctor
 
 La primera vez, VTube Studio mostrará un popup pidiendo aprobar el plugin: acéptalo. El token resultante se guarda en tu `.env` local (nunca se sube al repo).
 
-`doctor` comprueba Node, la conexión con VTube Studio, la autenticación, el modelo cargado, sus hotkeys reales, los parámetros de entrada, los permisos disponibles y qué recursos (PNG) están presentes o faltan, y te dice cómo arreglar cada problema.
+`doctor` adapta sus comprobaciones al modo elegido. En VTuber revisa Node, VTube Studio, la autenticación, el modelo, sus hotkeys reales, los parámetros de entrada y los permisos. En PNGTuber revisa el puerto, el token, Electron y los clips declarados. En ambos modos valida la configuración y qué recursos están presentes o faltan, y te dice cómo arreglar cada problema.
 
-### 3. Arrancar
+### 4. Arrancar
 
 ```bash
-npm start      # arranca el bridge
-npm run demo   # eventos de prueba: idle → thinking → coding → celebrate → idle
+npm start      # arranca el bridge (y la ventana si ALBA_ADAPTER=pngtuber)
+npm run pet    # abre solo la ventana PNGTuber
+npm run demo   # en otra terminal: idle → thinking → coding → celebrate → idle
+npm run demo -- --fake   # sin bridge, VTS ni conexiones; reloj acelerado
 ```
+
+La [demo](docs/demo.md) envía eventos, respeta los tiempos del director y funciona sin PNG ni clips. Si VTS está desconectado, muestra los estados del bridge; para comprobar la animación debes tener VTube Studio conectado. En PNGTuber, el bridge abre la ventana automáticamente salvo que `ALBA_PET_LAUNCH=false`.
 
 ## Configuración
 
@@ -79,11 +116,19 @@ npm run demo   # eventos de prueba: idle → thinking → coding → celebrate �
 
 | Variable | Para qué sirve | Valor por defecto |
 |---|---|---|
+| `ALBA_ADAPTER` | Modo de avatar: `vtuber`, `pngtuber` o `fake`; alias `vts` y `pet` | `vtuber` |
+| `VTS_REQUEST_ITEM_PERMISSION` | Solicitar permiso de PNG externos al arrancar | `false` |
 | `VTS_PORT` | Puerto de la Plugin API de VTube Studio | `8001` |
 | `VTS_AUTH_TOKEN` | Token de plugin (se rellena solo tras aprobar el popup) | vacío |
+| `ALBA_PET_PORT` | Puerto WebSocket local de la ventana PNGTuber | `8791` |
+| `ALBA_PET_LAUNCH` | Abrir la ventana PNGTuber al arrancar el bridge | `true` |
+| `ALBA_PET_TOKEN` | Token del WebSocket del pet; si está vacío usa `ALBA_TOKEN` | vacío |
+| `ALBA_PET_WINDOW` | Tamaño fijo de la ventana PNGTuber (`anchoxalto`); vacío = se ajusta al clip y recuerda el tamaño arrastrado | vacío |
 | `ALBA_BRIDGE_PORT` | Puerto del bridge (solo loopback) | `8790` |
 | `ALBA_TOKEN` | Token que deben enviar los clientes en `X-Alba-Token` | generado por ti |
-| `VTS_LAUNCH_COMMAND` | Cómo reabrir VTube Studio al despertar de `deep_sleep` | vacío |
+| `VTS_PROCESS_CONTROL` | Habilitar cierre/lanzamiento, siempre con confirmación por operación | `false` |
+| `VTS_CLOSE_COMMAND` | Array JSON de ejecutable y argumentos para cerrar exclusivamente VTS, sin shell | vacío |
+| `VTS_LAUNCH_COMMAND` | Array JSON de ejecutable y argumentos de un launcher que regresa al abrir VTS | vacío |
 
 ### Archivos de `config/` (recarga en caliente)
 
@@ -92,14 +137,14 @@ Si un JSON queda inválido, se conserva la última configuración válida y se r
 | Archivo | Qué define |
 |---|---|
 | `persona.json` | Nombre y carácter de Alba, umbrales de "tranquilidad" |
-| `scenes.json` | Escenas: qué intención activa qué expresión, movimiento y props |
-| `rules.json` | Reglas evento → intención, con cooldown, debounce y contadores por ventana de tiempo |
+| `scenes.json` | Escenas: qué intención activa qué expresión, movimiento, props y clips |
+| `rules.json` | Reglas evento → intención, con cooldown, debounce, contadores y condiciones `when.state` |
 | `bindings.json` | Mapa intención → hotkeys/parámetros, **por modelo** (con entrada `default`) |
-| `assets.json` | Registro de recursos por id (PNG de props, y más tipos a futuro) |
+| `assets.json` | Registro de recursos por id: PNG de props (`item`) y clips PNGTuber (`clip`) |
 | `commands.json` | Comandos del CLI `alba`: frase → intención |
 | `schemas/` | JSON Schemas para validar y autocompletar los archivos anteriores |
 
-Referencia completa en [`docs/config-reference.md`](docs/config-reference.md).
+Los schemas describen los campos admitidos; la [referencia de configuración](docs/config-reference.md) explica cada uno y las reglas iniciales se explican en la [demo](docs/demo.md).
 
 ## Uso
 
@@ -108,33 +153,47 @@ Referencia completa en [`docs/config-reference.md`](docs/config-reference.md).
 ```bash
 alba good night    # sleep: Alba duerme y deja de reaccionar
 alba ring ring     # wake: la despierta
-alba lights out    # deep_sleep: cierra VTube Studio (pide confirmación)
+alba lights out    # deep_sleep: pide confirmación; en VTS puede cerrarlo, en PNGTuber solo pausa
 alba focus         # modo programar, con teclado
 alba tea time      # modo descanso, con taza
 alba oops          # reacción de error
 alba cheer         # celebración
 alba hello         # saludo
+alba llorar        # Eyes Cry; alias: drama
+alba enojo         # Angry Sign; alias: grrr
+alba amor          # Heart Eyes; alias: flechazo
+alba susto         # Shock Sign; alias: buu
+alba sacudida      # Anim Shake; alias: gelatina
+alba reset         # Remove Expressions; respeta sleep y las duraciones mínimas
 alba list          # muestra todos los comandos disponibles
+alba status        # modo, escena y qué agentes enviaron eventos (¿está conectada?)
+alba hotkeys       # nombre e ID de los hotkeys del modelo cargado (solo vtuber)
 ```
 
-Los nombres son tuyos: edita `config/commands.json` y listo. Para tener `alba` disponible globalmente: `npm link` (modifica tu entorno fuera del proyecto, hazlo a conciencia).
+Los comandos funcionan igual en ambos modos: el bridge traduce la intención al clip o al hotkey que corresponda. `alba hotkeys` solo aplica a `vtuber`; en PNGTuber los clips se asignan en `config/scenes.json`.
+
+Los nombres son tuyos: edita `config/commands.json` y listo. Sin instalación global, usa `npm run alba -- good night` o `node clients/cli/alba.mjs good night`; sustituye la frase por cualquiera de la tabla. Para tener `alba` globalmente, `npm link` requiere aprobación aparte porque modifica el entorno fuera del proyecto. Consulta [`clients/cli/README.md`](clients/cli/README.md).
+
+El [catálogo completo y la guía para añadir comandos](docs/adding-a-command.md) explican cómo crear alias, elegir un hotkey y configurar la duración. Las escenas temporales vuelven a la actividad anterior; para que terminen en idle y limpien la expresión, comienza con `alba ring ring`. `reset` limpia expresiones; `ring ring` además cancela actividades y props y despierta a Alba.
 
 ### Dormir y despertar
 
 | Nivel | Qué hace | Cuándo usarlo |
 |---|---|---|
-| `sleep` | Escena de dormir; ignora eventos; VTube Studio y bridge siguen abiertos | Quieres usar el agente sin Alba reaccionando |
-| `deep_sleep` | Además cierra VTube Studio | Necesitas los recursos de la PC |
+| `sleep` | Mantiene la pose de dormir a baja frecuencia; ignora eventos y voz; VTube Studio y bridge siguen abiertos | Quieres usar el agente sin Alba reaccionando |
+| `deep_sleep` | En VTS, cierra si el control está habilitado y confirmas; en PNGTuber solo pausa. Sin control configurado, pausa y avisa | Necesitas los recursos de la PC |
 | `wake` | Vuelve a `idle` desde cualquiera de los dos | — |
 
-Para despertar desde `deep_sleep`, configura `VTS_LAUNCH_COMMAND` (ruta del ejecutable o URL de Steam). Si no está configurado, `alba ring ring` te pedirá abrir VTube Studio a mano y Alba reconectará sola.
+El control de procesos está desactivado por defecto. Para habilitarlo configura `VTS_PROCESS_CONTROL=true` y `VTS_CLOSE_COMMAND`. Los comandos son arrays JSON de ejecutable y argumentos en `.env`, sin interpretación de shell. `VTS_LAUNCH_COMMAND` es opcional: al despertar desde `deep_sleep`, lanzar VTS también exige confirmación. Sin launcher, `alba ring ring` avisa que abras VTS a mano y Alba reconecta cuando aparezca. No se aceptan rutas o URLs sueltas como comandos; una URL debe ser argumento de un launcher configurado por el usuario.
 
 ### Conectar tu agente
 
-> Las instrucciones exactas de instalación de cada cliente se completan en el Paso 5 del plan de desarrollo.
+El proyecto incluye el cargador local `.opencode/plugins/alba.js` y `opencode.json` para el servidor MCP. Se activan al iniciar opencode **desde la raíz de este proyecto**; no hace falta instalar paquetes globales. Reinicia el bridge después de actualizar código; los JSON sí se recargan en caliente.
 
-- **opencode:** el plugin de `clients/opencode/` reenvía `tool.execute.before/after` y `session.idle` al bridge.
-- **MCP:** `clients/mcp/` expone `avatar_status`, `avatar_say`, `avatar_scene`, `avatar_hotkey`, `avatar_sleep` y `avatar_wake`. Son voluntarias: el agente solo las usa si se lo indicas (por ejemplo, en tu `AGENTS.md`).
+Para comprobar que está conectado, usa opencode y ejecuta `npm run alba -- status`: debe aparecer una línea `opencode`. Paso a paso y solución de problemas en [Conectar opencode](docs/opencode.md).
+
+- **opencode:** el [plugin](clients/opencode/README.md) reenvía `tool.execute.before/after` y `session.idle` al bridge sin argumentos ni salidas privadas.
+- **MCP:** el [servidor por stdio](clients/mcp/README.md) expone `avatar_status`, `avatar_say`, `avatar_scene`, `avatar_sleep` y `avatar_wake`, más `avatar_hotkey` solo en modo `vtuber`, sin dependencias nuevas. Son voluntarias: el agente solo las usa si se lo indicas. Para probarlas, sigue [Conectar opencode → MCP](docs/opencode.md#5-comprueba-el-mcp-opcional).
 - **HTTP:** cualquier cosa que haga POST. Ejemplos en [`clients/http/examples.md`](clients/http/examples.md).
 
 ```bash
@@ -148,10 +207,14 @@ Endpoints: `POST /event`, `POST /intent`, `GET /state`, `GET /stream` (SSE).
 
 ## Personalizar
 
-- **Cambiar de modelo:** carga otro en VTube Studio y añade su entrada en `config/bindings.json`. Guía: [`docs/adding-a-model.md`](docs/adding-a-model.md).
-- **Agregar un comando:** una línea en `config/commands.json`. Guía: [`docs/adding-a-command.md`](docs/adding-a-command.md).
-- **Agregar un prop o recurso:** suelta el PNG en `assets/props/` y registra su id en `config/assets.json`. Si el archivo falta, el recurso simplemente no aparece. Guía: [`docs/adding-an-asset.md`](docs/adding-an-asset.md).
-- **Agregar un cliente nuevo:** basta con traducir sus eventos al esquema canónico. Guía: [`docs/adding-a-client.md`](docs/adding-a-client.md).
+Todo se hace editando JSON de `config/`, sin tocar código. La guía [Crea tus propias cosas](docs/customize.md) recorre un ejemplo completo (una expresión nueva con su comando y su reacción automática) en los dos modos.
+
+- **Nueva expresión o reacción:** escena en `scenes.json` + hotkey en `bindings.json` (VTuber) o clip en `assets.json` (PNGTuber) + regla o comando. Ver [Crea tus propias cosas](docs/customize.md).
+- **Cambiar de modelo:** [Añadir un modelo Live2D](docs/adding-a-model.md).
+- **Cambiar los clips PNGTuber:** [guía PNGTuber](docs/pngtuber.md#2-agrega-tus-clips).
+- **Agregar un comando:** [Añadir y personalizar comandos](docs/adding-a-command.md).
+- **Agregar un prop o recurso:** [Añadir un recurso](docs/adding-an-asset.md). Si falta, se omite con un aviso por causa.
+- **Agregar un cliente nuevo:** [Añadir un cliente](docs/adding-a-client.md).
 
 ## Solución de problemas
 
@@ -161,8 +224,12 @@ Endpoints: `POST /event`, `POST /intent`, `GET /state`, `GET /stream` (SSE).
 | No aparece el popup de autorización | VTube Studio sin foco o popup oculto | Reintenta `npm run doctor` con VTube Studio en primer plano |
 | Una intención no hace nada | El modelo no tiene ese hotkey | Revisa `doctor` y añade el binding de ese modelo |
 | El teclado o la taza no aparecen | Falta el PNG o el permiso de items | `doctor` lista qué falta; sin ellos todo lo demás funciona |
-| Alba parpadea con cada comando | Reglas sin cooldown | Sube `cooldown` o `debounce` en `rules.json` |
+| Alba parpadea con cada comando | Reglas sin cooldown | Sube `cooldownMs` o `debounceMs` en `rules.json` |
+| Alba no reacciona a opencode | opencode abierto desde otra carpeta, o bridge apagado | `npm run alba -- status` y [Conectar opencode](docs/opencode.md) |
 | VTube Studio cerrado | — | El bridge sigue vivo y registra la degradación; Alba vuelve al reabrirlo |
+| La ventana PNGTuber muestra un marcador | Falta el clip o el archivo no es compatible | Revisa `npm run doctor`, el nombre en `assets.json` y el formato |
+| La ventana PNGTuber no abre | Electron no está instalado o el puerto está ocupado | `npm install`, revisa `ALBA_PET_PORT` y ejecuta `npm run pet` |
+| No puedo arrastrar la ventana | El cursor está fuera del clip | Arrastra desde la figura o usa `Ctrl+Alt+A` |
 
 ## Estructura del proyecto
 
@@ -171,12 +238,13 @@ config/     configuración JSON (+ schemas/)
 src/core/   bus, director de escena, reglas, config, assets, speech
 src/platform/   cerrar/lanzar VTS según el sistema operativo (configurable)
 src/api/    bridge HTTP
-src/adapters/   vts/ (VTube Studio) y fake/ (sin VTS, para demos y tests)
+src/adapters/   vts/ (VTube Studio), pngtuber/ (ventana Electron) y fake/
+desktop/    ventana Electron, renderer y persistencia de posición
 clients/    opencode/ · mcp/ · http/ · cli/
 scripts/    doctor y demo
 test/       pruebas
-docs/       guías
-assets/     modelos y PNG (ignorados por git)
+docs/       guías (history/: notas de etapas anteriores; ideas/: diseños pendientes)
+assets/     modelos, PNG y clips (ignorados por git)
 ```
 
 ## Seguridad
@@ -191,10 +259,12 @@ El **código** es [MIT](LICENSE). El **arte no se distribuye con este repositori
 
 ## Roadmap
 
-- **Fase 0:** núcleo, adapter de VTube Studio, doctor, integración con opencode y MCP, demo, dormir/despertar.
-- **Fase 2:** voz (edge-tts, con SAPI de Windows como respaldo) y lip-sync por amplitud de audio.
+- ✅ **Fase 0:** núcleo, adapter de VTube Studio, doctor, integración con opencode y MCP, demo, dormir/despertar.
+- ✅ **Modo PNGTuber:** registro de adapters, clips en assets, recarga en caliente, adapter PNGTuber, ventana Electron, diagnóstico por modo, `alba status` y guías de uso. (En el historial de commits aparece como "Fase 1–3".)
+- **Fase 2 (voz):** TTS (edge-tts, con SAPI de Windows como respaldo) y lip-sync por amplitud de audio.
+- **Panel de control:** una ventana para manejar a Alba sin terminal (cambiar de modo, lanzar expresiones, ver la conexión). Diseño en [docs/ideas/panel.md](docs/ideas/panel.md).
 - **Más adelante:** overlay propio para props, recursos de sonido, atajo global para dormir, más clientes (Claude Code, Codex).
-- **Final:** instalación con un comando, guías completas, tests y CI, paquete de avatar compartible.
+- **Final:** instalación con un comando (incluido el plugin global de opencode para usarla en cualquier proyecto), portabilidad fuera de Windows, paquete de avatar compartible.
 
 ## Contribuir
 

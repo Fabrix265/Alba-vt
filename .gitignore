@@ -8,6 +8,12 @@ agent.md
 # Dependencias
 node_modules/
 
+# Solo el cargador local de Alba; nunca la cache generada por opencode
+.opencode/*
+!.opencode/plugins/
+.opencode/plugins/*
+!.opencode/plugins/alba.js
+
 # Arte de terceros (repo público, MIT)
 assets/*
 !assets/models/
@@ -16,6 +22,10 @@ assets/models/*
 !assets/models/.gitkeep
 assets/props/*
 !assets/props/.gitkeep
+!assets/pngtuber/
+assets/pngtuber/*
+!assets/pngtuber/.gitkeep
+!assets/pngtuber/README.md
 
 # Logs y temporales
 *.log
