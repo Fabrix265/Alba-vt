@@ -3,7 +3,7 @@
   "name": "Alba",
   "character": "Companera tranquila que acompana mientras programas; reacciona sin interrumpir.",
   "limits": {
-    "minStateDurationMs": 1200,
+    "minStateDurationMs": 600,
     "maxTransientsPerMinute": 6
   }
 }

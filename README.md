@@ -2,7 +2,7 @@
 
 **Una presencia VTuber o PNGTuber para tu agente de código.**
 
-Alba es un personaje 2D que reacciona en tiempo real a lo que hace tu agente: se pone a teclear cuando programa, se enoja o se pone triste cuando hay errores, celebra cuando termina, y se va a dormir cuando se lo pides. Puede ser un modelo Live2D en [VTube Studio](https://denchisoft.com/) o una ventana PNGTuber transparente en tu escritorio. No es un chatbot aparte: es la cara del agente que ya usas.
+Alba es un personaje 2D que reacciona en tiempo real a lo que hace tu agente: piensa cuando el agente piensa, lee cuando lee, se pone a teclear cuando programa, dice la respuesta del agente en su globo, se enoja o se pone triste cuando hay errores, y se va a dormir cuando se lo pides. Puede ser un modelo Live2D en [VTube Studio](https://denchisoft.com/) o una ventana PNGTuber transparente en tu escritorio. No es un chatbot aparte: es la cara del agente que ya usas.
 
 > **Estado:** Fase 0 cerrada y modo PNGTuber terminado. Incluye bridge, adapter VTube Studio, adapter PNGTuber con ventana Electron, doctor por modo, plugin de opencode, CLI, HTTP, MCP por stdio sin SDK y demo. Todavía sin voz ni instalador (ver [Roadmap](#roadmap)). ¿Primera vez? Empieza por [Primeros pasos](docs/getting-started.md). Proyecto no oficial: no está afiliado a VTube Studio, Live2D, opencode ni Anthropic.
 
@@ -45,7 +45,7 @@ Alba es un personaje 2D que reacciona en tiempo real a lo que hace tu agente: se
 | Usar el modo PNGTuber | [Modo PNGTuber](docs/pngtuber.md) |
 | Usar el modo VTuber | [Adapter de VTube Studio](docs/vts-adapter.md) |
 | Saber si está conectada a opencode | [Conectar opencode](docs/opencode.md) |
-| Crear expresiones, reacciones y comandos propios | [Crea tus propias cosas](docs/customize.md) |
+| Crear expresiones, reacciones, comandos y frases propias | [Crea tus propias cosas](docs/customize.md) |
 | Conectar otro modelo Live2D | [Añadir un modelo](docs/adding-a-model.md) |
 | Añadir clips o props | [Añadir un recurso](docs/adding-an-asset.md) |
 | Crear o renombrar comandos `alba …` | [Añadir y personalizar comandos](docs/adding-a-command.md) |
@@ -104,7 +104,7 @@ La primera vez, VTube Studio mostrará un popup pidiendo aprobar el plugin: acé
 ```bash
 npm start      # arranca el bridge (y la ventana si ALBA_ADAPTER=pngtuber)
 npm run pet    # abre solo la ventana PNGTuber
-npm run demo   # en otra terminal: idle → thinking → coding → celebrate → idle
+npm run demo   # en otra terminal: idle → thinking → coding → answering → idle
 npm run demo -- --fake   # sin bridge, VTS ni conexiones; reloj acelerado
 ```
 
@@ -124,6 +124,10 @@ La [demo](docs/demo.md) envía eventos, respeta los tiempos del director y funci
 | `ALBA_PET_LAUNCH` | Abrir la ventana PNGTuber al arrancar el bridge | `true` |
 | `ALBA_PET_TOKEN` | Token del WebSocket del pet; si está vacío usa `ALBA_TOKEN` | vacío |
 | `ALBA_PET_WINDOW` | Tamaño fijo de la ventana PNGTuber (`anchoxalto`); vacío = se ajusta al clip y recuerda el tamaño arrastrado | vacío |
+| `ALBA_PET_TRANSITION_MS` | Fundido entre clips PNGTuber en ms (`0` = corte seco) | `250` |
+| `ALBA_SPEAK_RESPONSES` | `true` = Alba dice la respuesta de opencode frase a frase (solo viaja al bridge local) | `true` |
+| `ALBA_PET_BUBBLE` | Estilo del globo PNGTuber: `terminal`, `comic`, `subtitulo` o `tarjeta` | `terminal` |
+| `ALBA_LOG_EVENTS` | `true` = la terminal del bridge muestra evento → regla → escena | `false` |
 | `ALBA_BRIDGE_PORT` | Puerto del bridge (solo loopback) | `8790` |
 | `ALBA_TOKEN` | Token que deben enviar los clientes en `X-Alba-Token` | generado por ti |
 | `VTS_PROCESS_CONTROL` | Habilitar cierre/lanzamiento, siempre con confirmación por operación | `false` |
@@ -142,6 +146,7 @@ Si un JSON queda inválido, se conserva la última configuración válida y se r
 | `bindings.json` | Mapa intención → hotkeys/parámetros, **por modelo** (con entrada `default`) |
 | `assets.json` | Registro de recursos por id: PNG de props (`item`) y clips PNGTuber (`clip`) |
 | `commands.json` | Comandos del CLI `alba`: frase → intención |
+| `phrases.json` | Frases propias de Alba por escena (sin repetirse, con pausas) |
 | `schemas/` | JSON Schemas para validar y autocompletar los archivos anteriores |
 
 Los schemas describen los campos admitidos; la [referencia de configuración](docs/config-reference.md) explica cada uno y las reglas iniciales se explican en la [demo](docs/demo.md).
@@ -164,6 +169,8 @@ alba enojo         # Angry Sign; alias: grrr
 alba amor          # Heart Eyes; alias: flechazo
 alba susto         # Shock Sign; alias: buu
 alba sacudida      # Anim Shake; alias: gelatina
+alba pensar        # thinking: como al empezar una sesión
+alba leer          # reading: como cuando el agente lee archivos
 alba reset         # Remove Expressions; respeta sleep y las duraciones mínimas
 alba list          # muestra todos los comandos disponibles
 alba status        # modo, escena y qué agentes enviaron eventos (¿está conectada?)

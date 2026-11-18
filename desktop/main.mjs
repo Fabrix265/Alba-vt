@@ -5,7 +5,10 @@ import { fileURLToPath } from 'node:url';
 import { WebSocket } from 'ws';
 import { readEnvironment } from '../src/environment.mjs';
 import { resolveAssetPath } from '../src/core/paths.mjs';
-import { applyResize, isOnScreen, loadWindowState, parseSize, resolveBounds, saveWindowState, MIN_WINDOW_SIZE } from './state.mjs';
+import {
+  applyResize, isOnScreen, loadWindowState, parseSize, resolveBounds, saveWindowState, scaleBounds,
+  MIN_WINDOW_SIZE, SCALE_STEP
+} from './state.mjs';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(process.env.ALBA_ROOT || path.join(dirname, '..'));
@@ -26,6 +29,11 @@ let lastState = null;
 let interactive = false;
 let dragTimer = null;
 let dragOffset = null;
+let dragSize = null;
+// Tamano pedido por nosotros. Windows con escala != 100 % devuelve 1-2 px de
+// mas al leerlo; si lo releyeramos para el siguiente movimiento, creceria.
+let logicalSize = null;
+let lastClipSize = null;
 let resizeTimer = null;
 let resizeEdge = null;
 let resizeStart = null;
@@ -56,6 +64,7 @@ function stopDrag() {
   if (dragTimer) clearInterval(dragTimer);
   dragTimer = null;
   dragOffset = null;
+  dragSize = null;
   if (window && !window.isDestroyed()) scheduleSave();
 }
 
@@ -75,7 +84,7 @@ function startResize(edge) {
   userSized = true;
   resizeEdge = edge;
   resizeStart = screen.getCursorScreenPoint();
-  resizeBounds = window.getBounds();
+  resizeBounds = currentBounds();
   resizeTimer = setInterval(() => {
     if (!window || window.isDestroyed()) return stopResize(false);
     const cursor = screen.getCursorScreenPoint();
@@ -89,13 +98,63 @@ function startResize(edge) {
       max: { width: area.width, height: area.height }
     });
     if (!next) return stopResize(false);
-    window.setBounds({
+    setBoundsIfChanged({
       x: Math.min(Math.max(next.x, area.x), area.x + area.width - next.width),
       y: Math.min(Math.max(next.y, area.y), area.y + area.height - next.height),
       width: next.width,
       height: next.height
     });
   }, 16);
+}
+
+// Con escala de Windows distinta de 100 %, cada setPosition/setBounds puede
+// sumar un pixel por redondeo. Por eso siempre se pasa el tamano explicito y
+// no se toca la ventana si nada cambio.
+function setBoundsIfChanged(next) {
+  if (!window || window.isDestroyed()) return;
+  const current = currentBounds();
+  if (current.x === next.x && current.y === next.y && current.width === next.width && current.height === next.height) return;
+  logicalSize = { width: next.width, height: next.height };
+  window.setBounds(next);
+}
+
+function currentBounds() {
+  const bounds = window.getBounds();
+  return logicalSize ? { ...bounds, ...logicalSize } : bounds;
+}
+
+function workArea() {
+  return screen.getDisplayMatching(window.getBounds()).workArea;
+}
+
+function scaleWindow(factor) {
+  if (!window || window.isDestroyed()) return;
+  const next = scaleBounds(currentBounds(), factor, workArea());
+  if (!next) return;
+  autoFit = false;
+  userSized = true;
+  setBoundsIfChanged(next);
+  scheduleSave();
+}
+
+// Ajusta la ventana al tamano natural del clip actual (sin pasar del 90 % de la pantalla).
+function fitToClip() {
+  if (!window || window.isDestroyed() || !lastClipSize) return false;
+  const area = workArea();
+  const { width, height } = lastClipSize;
+  const scale = Math.min((area.width * 0.9) / width, (area.height * 0.9) / height, 1);
+  const bounds = currentBounds();
+  const nextWidth = Math.max(MIN_WINDOW_SIZE, Math.round(width * scale));
+  const nextHeight = Math.max(MIN_WINDOW_SIZE, Math.round(height * scale));
+  const next = scaleBounds(bounds, 1, area) ?? bounds;
+  setBoundsIfChanged({
+    x: Math.round(Math.min(Math.max(next.x + (next.width - nextWidth) / 2, area.x), area.x + area.width - nextWidth)),
+    y: Math.round(Math.min(Math.max(next.y + next.height - nextHeight, area.y), area.y + area.height - nextHeight)),
+    width: nextWidth,
+    height: nextHeight
+  });
+  scheduleSave();
+  return true;
 }
 
 function setInteractive(value) {
@@ -110,7 +169,7 @@ function setInteractive(value) {
 
 function saveBounds() {
   if (!window || window.isDestroyed()) return;
-  saveWindowState(windowFile(), window.getBounds());
+  saveWindowState(windowFile(), currentBounds());
 }
 
 function scheduleSave() {
@@ -123,6 +182,11 @@ function rebuildMenu() {
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: 'Modo interaccion', type: 'checkbox', checked: interactive, click: () => setInteractive(!interactive) },
     { label: 'Mostrar a Alba', click: () => { window?.show(); window?.focus(); } },
+    { label: 'Tamaño', submenu: [
+      { label: 'Agrandar', click: () => scaleWindow(SCALE_STEP) },
+      { label: 'Achicar', click: () => scaleWindow(1 / SCALE_STEP) },
+      { label: 'Tamaño original del clip', enabled: Boolean(lastClipSize), click: () => fitToClip() }
+    ] },
     { label: 'Reconectar', click: () => { socket?.close(); } },
     { type: 'separator' },
     { label: 'Salir', click: () => app.quit() }
@@ -138,6 +202,7 @@ function createWindow() {
   const displays = screen.getAllDisplays();
   const bounds = resolveBounds({ size: requestedSize, saved, displays });
   autoFit = !requestedSize && !(saved && isOnScreen(saved, displays));
+  logicalSize = { width: bounds.width, height: bounds.height };
   window = new BrowserWindow({
     ...bounds,
     frame: false,
@@ -231,38 +296,53 @@ ipcMain.on('pet:ignore', (_event, ignore) => setIgnore(ignore));
 ipcMain.on('pet:drag-start', () => {
   if (!window || window.isDestroyed()) return;
   const point = screen.getCursorScreenPoint();
-  const [x, y] = window.getPosition();
-  dragOffset = { x: point.x - x, y: point.y - y };
+  const bounds = currentBounds();
+  dragOffset = { x: point.x - bounds.x, y: point.y - bounds.y };
+  dragSize = { width: bounds.width, height: bounds.height };
   if (dragTimer) clearInterval(dragTimer);
   dragTimer = setInterval(() => {
     if (!window || window.isDestroyed()) return stopDrag();
     const cursor = screen.getCursorScreenPoint();
-    window.setPosition(cursor.x - dragOffset.x, cursor.y - dragOffset.y);
+    // Tamano fijo durante todo el arrastre: mover nunca debe agrandar la ventana.
+    setBoundsIfChanged({ x: cursor.x - dragOffset.x, y: cursor.y - dragOffset.y, ...dragSize });
   }, 16);
 });
 ipcMain.on('pet:drag-end', stopDrag);
 ipcMain.on('pet:resize-start', (_event, edge) => startResize(String(edge)));
 ipcMain.on('pet:resize-end', () => stopResize());
 ipcMain.on('pet:clip-size', (_event, size) => {
-  if (!autoFit || userSized || !window || window.isDestroyed()) return;
   const width = Number(size?.width);
   const height = Number(size?.height);
   if (!Number.isFinite(width) || !Number.isFinite(height) || width < 1 || height < 1) return;
-  const area = screen.getDisplayMatching(window.getBounds()).workArea;
-  const scale = Math.min((area.width * 0.9) / width, (area.height * 0.9) / height, 1);
-  const nextWidth = Math.max(MIN_WINDOW_SIZE, Math.round(width * scale));
-  const nextHeight = Math.max(MIN_WINDOW_SIZE, Math.round(height * scale));
-  const bounds = window.getBounds();
+  const first = !lastClipSize;
+  lastClipSize = { width, height };
+  if (first) rebuildMenu();
+  if (!autoFit || userSized || !window || window.isDestroyed()) return;
   autoFit = false;
-  window.setBounds({
-    x: Math.round(bounds.x + (bounds.width - nextWidth) / 2),
-    y: Math.round(bounds.y + (bounds.height - nextHeight) / 2),
-    width: nextWidth,
-    height: nextHeight
-  });
-  scheduleSave();
+  fitToClip();
 });
-ipcMain.handle('pet:config', () => ({ interactive, port: Number(env.ALBA_PET_PORT || 8791) }));
+// Rueda del raton en modo interaccion: agrandar o achicar.
+ipcMain.on('pet:scale', (_event, direction) => {
+  if (!interactive) return;
+  scaleWindow(Number(direction) > 0 ? SCALE_STEP : 1 / SCALE_STEP);
+});
+// Duracion del fundido entre clips: 0 = corte instantaneo, maximo 2000 ms.
+function transitionMs() {
+  const raw = String(env.ALBA_PET_TRANSITION_MS ?? '').trim();
+  const value = raw === '' ? 250 : Number(raw);
+  return Number.isFinite(value) ? Math.min(2000, Math.max(0, Math.round(value))) : 250;
+}
+const BUBBLE_STYLES = ['terminal', 'comic', 'subtitulo', 'tarjeta'];
+function bubbleStyle() {
+  const value = String(env.ALBA_PET_BUBBLE ?? '').trim().toLowerCase();
+  if (!value) return 'terminal';
+  if (BUBBLE_STYLES.includes(value)) return value;
+  console.warn(`[alba] ALBA_PET_BUBBLE="${value}" no existe; usa ${BUBBLE_STYLES.join(', ')}. Uso terminal.`);
+  return 'terminal';
+}
+ipcMain.handle('pet:config', () => ({
+  interactive, port: Number(env.ALBA_PET_PORT || 8791), fadeMs: transitionMs(), bubble: bubbleStyle()
+}));
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();

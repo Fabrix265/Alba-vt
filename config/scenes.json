@@ -44,10 +44,25 @@
         "angleZ": 0
       }
     },
+    "answering": {
+      "layer": "activity",
+      "clip": "idle",
+      "talkingClip": "idle_talk",
+      "lipSync": true,
+      "description": "Habla mientras el agente escribe su respuesta",
+      "parameters": {
+        "angleX": 0,
+        "angleY": 2,
+        "angleZ": 0,
+        "smile": 0.3
+      }
+    },
     "celebrate": {
       "layer": "transient",
       "clip": "celebrate",
       "durationMs": 3000,
+      "endsActivity": true,
+      "description": "Celebracion manual (alba hello); al terminar vuelve a idle",
       "parameters": {
         "angleY": 5,
         "angleZ": 6,

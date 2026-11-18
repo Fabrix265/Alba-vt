@@ -16,5 +16,6 @@ contextBridge.exposeInMainWorld('alba', {
   resizeStart: (edge) => ipcRenderer.send('pet:resize-start', String(edge)),
   resizeEnd: () => ipcRenderer.send('pet:resize-end'),
   clipSize: (size) => ipcRenderer.send('pet:clip-size', size),
+  scale: (direction) => ipcRenderer.send('pet:scale', Number(direction) > 0 ? 1 : -1),
   getConfig: () => ipcRenderer.invoke('pet:config')
 });

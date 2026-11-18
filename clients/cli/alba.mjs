@@ -44,13 +44,13 @@ export function formatStatus(state) {
     `Modo: ${describeAdapter(state.adapter)}`,
     `Alba: ${state.asleep ? (state.deepSleep ? 'en sueno profundo' : 'dormida (ignora eventos)') : 'despierta'} | escena ${state.effective}`
   ];
-  const sources = Object.entries(state.activity?.sources ?? {});
+  const sources = Object.entries(state.events?.sources ?? {});
   if (!sources.length) {
     lines.push('Eventos: todavia no llego ninguno.',
       '  Si usas opencode, abrelo desde la carpeta de Alba y pidele algo; consulta docs/opencode.md.');
     return lines;
   }
-  lines.push(`Eventos recibidos (${state.activity.total} en total):`);
+  lines.push(`Eventos recibidos (${state.events.total} en total):`);
   for (const [source, entry] of sources) {
     const last = entry.last;
     const detail = `${last.type}${last.tool ? ` (${last.tool})` : ''}${last.ignored ? ', ignorado porque dormia' : ''}`;

@@ -1,0 +1,228 @@
+{
+  "$schema": "./schemas/phrases.schema.json",
+  "settings": {
+    "minGapMs": 7000,
+    "chance": 0.5,
+    "memory": 40,
+    "responseMaxChars": 900
+  },
+  "phrases": {
+    "thinking": {
+      "description": "Cuando opencode recibe un mensaje o piensa entre pasos",
+      "chance": 0.45,
+      "lines": [
+        "Mmm, déjame verlo con calma…",
+        "A ver, a ver… ¿por dónde empiezo?",
+        "Pensando… no me apures, ¿eh?",
+        "Esto tiene su truco, lo presiento.",
+        "Dame un segundo, estoy armando el plan.",
+        "¿Y si lo intentamos por otro lado?",
+        "Conectando ideas… casi, casi.",
+        "Ok, tengo una corazonada.",
+        "Respiro hondo antes de tocar nada.",
+        "Ordenando las piezas en mi cabeza.",
+        "Esto me recuerda a algo… ¿qué era?",
+        "Primero entender, después teclear.",
+        "Estoy dibujando el mapa en mi mente.",
+        "Paso uno: no entrar en pánico.",
+        "Un momentito, que se me ocurre algo.",
+        "Analizando con mi mejor cara de experta.",
+        "Hay varios caminos; busco el más corto.",
+        "Si fuera fácil no me lo pedirías, ¿verdad?",
+        "Hmm… esto merece una buena idea.",
+        "Déjame pensar como piensa un compilador.",
+        "Mis neuronas están haciendo horas extra.",
+        "Creo que ya veo por dónde va la cosa."
+      ]
+    },
+    "reading": {
+      "description": "Cuando opencode lee archivos o busca",
+      "chance": 0.3,
+      "lines": [
+        "Leyendo con lupa…",
+        "A ver qué esconde este archivo.",
+        "Hojeando el código, sin juzgar… mucho.",
+        "Buscando la aguja en el pajar.",
+        "Estas líneas cuentan una historia.",
+        "Revisando cada rinconcito.",
+        "Encontré algo… sigo leyendo.",
+        "Leyendo entre líneas, literalmente.",
+        "Esto está más ordenado de lo que pensaba.",
+        "Sigo el rastro de esa función.",
+        "Un archivo más y ya entiendo todo.",
+        "Tomando notas mentales.",
+        "¡Ajá! Por aquí pasan los datos.",
+        "Recorro carpetas como en un laberinto.",
+        "Lectura rápida activada.",
+        "Cuántos imports… vamos de a uno.",
+        "La documentación y yo somos amigas.",
+        "Espiando un poquito el proyecto."
+      ]
+    },
+    "coding": {
+      "description": "Cuando opencode escribe archivos o ejecuta comandos",
+      "chance": 0.35,
+      "lines": [
+        "¡Manos a la obra!",
+        "Tecleando a toda velocidad.",
+        "Esto va a quedar bonito, ya verás.",
+        "Una línea por aquí, otra por allá…",
+        "Modo concentración: activado.",
+        "Escribiendo código con cariño.",
+        "No me distraigas, que voy en racha.",
+        "Si compila a la primera, invito yo.",
+        "Refactorizando con estilo.",
+        "Le busco un nombre lindo a esta variable.",
+        "Ejecutando… crucemos los dedos.",
+        "Construyendo pieza por pieza.",
+        "Clic, clac, clic… música para mis oídos.",
+        "Probando una idea nueva.",
+        "Ajustando los detalles finos.",
+        "Esto lo arreglo en un dos por tres.",
+        "Cuidado: archivo en construcción.",
+        "Comando enviado; a ver qué dice la terminal.",
+        "Pequeños cambios, grandes resultados.",
+        "Mis dedos ya saben qué hacer."
+      ]
+    },
+    "celebrate": {
+      "description": "Cuando opencode termina su trabajo",
+      "chance": 0.9,
+      "lines": [
+        "¡Listo! Quedó genial.",
+        "¡Lo logramos!",
+        "Misión cumplida, capitán.",
+        "¡Ta-dá! Ahí lo tienes.",
+        "Salió mejor de lo que esperaba.",
+        "¡Choca esos cinco!",
+        "Terminado y con moño.",
+        "¿Viste? Te dije que podíamos.",
+        "Un problema menos en el mundo.",
+        "Me merezco un té después de esto.",
+        "¡Funciona! Bueno… creo que funciona.",
+        "Hecho. ¿Qué sigue?",
+        "Trabajo limpio, como me gusta.",
+        "Pequeña victoria desbloqueada.",
+        "¡Ese código brilla!",
+        "Te lo dejé ordenadito.",
+        "Y así, sin despeinarme.",
+        "Cerramos con broche de oro.",
+        "Otra tarea tachada de la lista."
+      ]
+    },
+    "error": {
+      "description": "Al primer error",
+      "chance": 0.9,
+      "lines": [
+        "Uy… algo no salió.",
+        "Ups, eso no estaba en el plan.",
+        "Error a la vista; nada grave… espero.",
+        "La terminal no está contenta.",
+        "Bueno, los errores también enseñan.",
+        "Tranqui, ya lo reviso.",
+        "Eso dolió un poquito.",
+        "¿Quién dejó ese bug ahí?",
+        "Plan B, ¡vamos allá!",
+        "No pasa nada, respiramos y seguimos.",
+        "Se me escapó un detalle.",
+        "La computadora dice que no.",
+        "Un tropiezo pequeñito, nada más.",
+        "El rojo no es mi color favorito.",
+        "Dame un momento, lo arreglo."
+      ]
+    },
+    "angry": {
+      "description": "Varios errores seguidos",
+      "chance": 1,
+      "ignoreGap": true,
+      "lines": [
+        "¡¿Otra vez?!",
+        "Este bug me está provocando.",
+        "Ok, ahora es personal.",
+        "Grrr… no me rindo.",
+        "¿En serio? ¿El mismo error?",
+        "Cuenta hasta diez, Alba… uno, dos…",
+        "Este error y yo vamos a tener una charla.",
+        "¡No me ganarás, código rebelde!",
+        "Respiro… respiro… ¡arg!",
+        "Mi paciencia está compilando… con advertencias.",
+        "Que alguien le explique a este programa quién manda."
+      ]
+    },
+    "sad": {
+      "description": "Muchos errores en poco tiempo",
+      "chance": 1,
+      "ignoreGap": true,
+      "lines": [
+        "Snif… esto se resiste.",
+        "Hoy el código no me quiere.",
+        "Tantos errores… necesito un abrazo.",
+        "No me desanimo… bueno, un poquito sí.",
+        "¿Le damos otra vuelta juntos?",
+        "Me siento como un punto y coma perdido.",
+        "Está difícil, pero no imposible.",
+        "Un bajón chiquito; ya se me pasa.",
+        "Creo que necesito un café… o dos.",
+        "Bueno, mañana será otro commit.",
+        "Esto también es parte del camino."
+      ]
+    },
+    "sleep": {
+      "description": "Al dormirla",
+      "chance": 1,
+      "ignoreGap": true,
+      "lines": [
+        "Buenas noches… zzz.",
+        "Me voy a descansar un ratito.",
+        "Apago motores… hasta luego.",
+        "Modo siesta activado.",
+        "Despiértame si pasa algo emocionante.",
+        "Cierro los ojitos solo un momento…",
+        "Guardando energía para mañana.",
+        "Zzz… sueño con código sin bugs.",
+        "Hasta pronto, no rompas nada."
+      ]
+    },
+    "wake": {
+      "description": "Al despertarla",
+      "chance": 1,
+      "ignoreGap": true,
+      "lines": [
+        "¡Ya estoy aquí!",
+        "¿Me extrañaste?",
+        "Despierta y con ganas.",
+        "Mmm… ¿cuánto dormí?",
+        "¡Lista para otra ronda!",
+        "Un bostezo y a trabajar.",
+        "Volví con las pilas cargadas.",
+        "¿Qué hacemos hoy?",
+        "Buenos días, aunque sea de tarde."
+      ]
+    },
+    "long_response": {
+      "description": "Cuando la respuesta de opencode supera responseMaxChars; se dice siempre",
+      "lines": [
+        "Uf, hay mucho más; el resto te lo dejé en opencode.",
+        "Esto sigue largo… lo demás está escrito en la terminal.",
+        "Te resumo hasta aquí; el detalle completo está en opencode.",
+        "Me quedo sin aire… lee el resto en opencode, ¿sí?",
+        "Hay más, pero mejor léelo con calma en opencode.",
+        "Lo que falta está en opencode, con todos los detalles.",
+        "Hasta aquí te lo cuento yo; sigue leyendo en la terminal."
+      ]
+    },
+    "idle": {
+      "description": "Al volver a reposo (por ejemplo, tras un error)",
+      "chance": 0.25,
+      "lines": [
+        "Aquí estoy si me necesitas.",
+        "Esperando tu próxima idea.",
+        "Todo tranquilo por aquí.",
+        "¿Seguimos?",
+        "Lista cuando tú digas.",
+        "Mientras tanto, practico mi mejor pose.",
+        "Sin prisa, yo te espero."
+      ]
+    }
+  }
+}

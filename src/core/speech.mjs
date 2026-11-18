@@ -25,6 +25,7 @@ export function buildLipSync({ text = '', audio = null, minMs = 600, maxMs = 600
 export function createSpeech({ onFrame, now = () => Date.now(), stepMs = 80 } = {}) {
   let timer = null;
   let current = null;
+  let looping = false;
 
   function stop() {
     if (timer) {
@@ -32,6 +33,7 @@ export function createSpeech({ onFrame, now = () => Date.now(), stepMs = 80 } = 
       timer = null;
     }
     current = null;
+    looping = false;
   }
 
   function speak({ text = '', audio = null } = {}) {
@@ -61,5 +63,33 @@ export function createSpeech({ onFrame, now = () => Date.now(), stepMs = 80 } = 
     return timer !== null;
   }
 
-  return { speak, stop, isSpeaking, buildLipSync };
+  // Boca en movimiento continuo mientras el agente escribe su respuesta.
+  // Sigue hasta stop() o hasta maxMs como red de seguridad.
+  function loop({ maxMs = 120000 } = {}) {
+    if (looping) return;
+    stop();
+    looping = true;
+    const startedAt = now();
+    let state = 2463534242;
+    const random = () => {
+      state ^= state << 13; state >>>= 0;
+      state ^= state >>> 17;
+      state ^= state << 5; state >>>= 0;
+      return state / 4294967296;
+    };
+    timer = setInterval(() => {
+      if (now() - startedAt >= maxMs) { stopLoop(); return; }
+      onFrame?.(0.15 + random() * 0.75, { loop: true });
+    }, stepMs);
+    timer.unref?.();
+    onFrame?.(0.5, { loop: true });
+  }
+
+  function stopLoop() {
+    if (!looping) return;
+    stop();
+    onFrame?.(0, { loop: true });
+  }
+
+  return { speak, stop, isSpeaking, loop, stopLoop, isLooping: () => looping, buildLipSync };
 }

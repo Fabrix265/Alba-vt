@@ -22,61 +22,61 @@
   },
   "idle_talk": {
     "type": "clip",
-    "file": "assets/pngtuber/idle_talk.apng",
+    "file": "assets/pngtuber/idle_talk.gif",
     "fit": "contain",
     "loop": true
   },
   "thinking": {
     "type": "clip",
-    "file": "assets/pngtuber/thinking.apng",
+    "file": "assets/pngtuber/thinking.gif",
     "fit": "contain",
     "loop": true
   },
   "thinking_talk": {
     "type": "clip",
-    "file": "assets/pngtuber/thinking_talk.apng",
+    "file": "assets/pngtuber/thinking_talk.gif",
     "fit": "contain",
     "loop": true
   },
   "coding": {
     "type": "clip",
-    "file": "assets/pngtuber/coding.apng",
+    "file": "assets/pngtuber/coding.gif",
     "fit": "contain",
     "loop": true
   },
   "reading": {
     "type": "clip",
-    "file": "assets/pngtuber/reading.apng",
+    "file": "assets/pngtuber/reading.gif",
     "fit": "contain",
     "loop": true
   },
   "celebrate": {
     "type": "clip",
-    "file": "assets/pngtuber/celebrate.apng",
+    "file": "assets/pngtuber/celebrate.gif",
     "fit": "contain",
     "loop": true
   },
   "error": {
     "type": "clip",
-    "file": "assets/pngtuber/error.apng",
+    "file": "assets/pngtuber/error.gif",
     "fit": "contain",
     "loop": true
   },
   "sad": {
     "type": "clip",
-    "file": "assets/pngtuber/sad.apng",
+    "file": "assets/pngtuber/sad.gif",
     "fit": "contain",
     "loop": true
   },
   "angry": {
     "type": "clip",
-    "file": "assets/pngtuber/angry.apng",
+    "file": "assets/pngtuber/angry.gif",
     "fit": "contain",
     "loop": true
   },
   "sleep": {
     "type": "clip",
-    "file": "assets/pngtuber/sleep.apng",
+    "file": "assets/pngtuber/sleep.gif",
     "fit": "contain",
     "loop": true
   }

@@ -115,6 +115,11 @@ export function createDirector({ scenes = {}, persona = {}, now = () => Date.now
       const durationMs = Math.max(minStateDurationMs, scene.durationMs ?? TRANSIENT_DEFAULT_MS);
       transient = { scene: sceneId, expiresAt: at + durationMs };
       lastTransientChangeAt = at;
+      // Una reaccion de cierre (p. ej. celebrar al terminar) deja a Alba en reposo al acabar.
+      if (scene.endsActivity) {
+        activity = null;
+        pendingBackground = null;
+      }
     } else {
       const background = activity ?? base;
       if (background !== sceneId && at - lastActivityChangeAt < minStateDurationMs) {

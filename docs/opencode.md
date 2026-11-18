@@ -72,7 +72,7 @@ Eventos recibidos (6 en total):
 
 - **Aparece `opencode`** → está conectado. Alba debería haber cambiado de cara
   mientras el agente trabajaba (`reading` al leer, `coding` al editar o ejecutar
-  comandos, `celebrate` al terminar bien).
+  comandos, `answering` mientras responde).
 - **Dice «todavia no llego ninguno»** → el plugin no está enviando nada. Mira
   [Problemas frecuentes](#problemas-frecuentes).
 - **Dice «ignorado porque dormia»** → llegan eventos pero Alba está dormida:
@@ -96,25 +96,62 @@ aparecerá una línea `mcp`.
 
 ## Qué eventos envía opencode
 
-El plugin solo envía **el tipo de evento y el nombre de la herramienta**.
-Nunca envía tus mensajes, el contenido de los archivos, los comandos ni sus
-salidas.
+Alba es un **reflejo** de opencode: hace lo mismo que el agente en cada
+momento y **dice lo que opencode responde**. El plugin envía el tipo de evento,
+el nombre de la herramienta y, si `ALBA_SPEAK_RESPONSES=true` (por defecto), las
+frases de la respuesta del agente. Nunca envía tus mensajes, el contenido de los
+archivos, los comandos ni sus salidas, y el texto de la respuesta solo viaja al
+bridge en `127.0.0.1`: no sale de tu equipo.
 
-| Lo que pasa en opencode | Evento que llega a Alba | Reacción de serie |
+| Lo que hace opencode | Evento que llega a Alba | Alba |
 |---|---|---|
-| Empieza una sesión | `session.start` | `thinking` |
-| El agente empieza a usar una herramienta | `tool.start` + nombre | `coding` o `reading` según la herramienta |
-| La herramienta termina bien | `tool.end` con `ok: true` | `celebrate` (como mucho cada 15 s) |
-| Un comando sale con error, o falla una herramienta o la sesión | `error` | `error`; si se repite, `angry` y luego `sad` |
-| El agente termina y queda esperando | `session.idle` | `idle` |
+| Recibe tu mensaje y empieza a trabajar | `session.busy` (o `session.start` en una sesión nueva) | `thinking` |
+| El modelo piensa (antes de cada paso o al razonar) | `reasoning` | `thinking` |
+| Lee archivos o busca | `tool.start` + `read`, `grep`, `glob`, `list`, `webfetch`… | `reading` |
+| Escribe archivos o ejecuta comandos | `tool.start` + `write`, `edit`, `bash`, `patch`… | `coding` |
+| Escribe la respuesta en pantalla | `response.start`, `say` por cada frase, `response.end` | `answering`: **habla** y su globo muestra la respuesta frase a frase |
+| Algo falla | `error` | `error`; si se repite, `angry` y luego `sad` |
+| Termina y queda esperando | `session.idle` | `idle`, **cuando Alba termina de decir la respuesta** |
 
-Herramientas que reconocen las reglas de serie:
+Notas:
 
-- **`coding`**: `bash`, `edit`, `write`, `patch`, `apply_patch`
-- **`reading`**: `read`, `grep`, `glob`, `list`, `search`
+- Terminar una herramienta (`tool.end`) **no** cambia nada: Alba sigue en lo que
+  esté hasta que opencode pase a otra fase.
+- No celebra al terminar: piensa mientras opencode trabaja, dice la respuesta
+  completa y después vuelve a reposo. `celebrate` queda para `alba hello`.
+- Para que no parpadee, cada escena dura como mínimo 0,6 s
+  (`minStateDurationMs` en `config/persona.json`). Si opencode cambia más
+  rápido, Alba salta directo a la fase más reciente.
+- Con `ALBA_LOG_EVENTS=true` en `.env`, la terminal del bridge muestra cada
+  evento y la escena que provocó: es la forma más rápida de ver si va
+  sincronizada.
 
-Cualquier otra herramienta (`webfetch`, `task`, `todowrite`…) llega igual, pero
-no tiene regla; puedes añadirla siguiendo [Crea tus propias cosas](customize.md#paso-4-que-reaccione-sola-opcional).
+### Alba dice la respuesta de opencode
+
+Mientras opencode escribe, el plugin corta su respuesta en frases y se las pasa
+a Alba, que las escribe en su globo letra por letra y mueve la boca:
+
+- Los **bloques de código** no se dicen; tampoco los símbolos de markdown.
+- Dice **todas** las frases, una tras otra, al ritmo en que se escriben y se
+  leen en el globo. Si opencode termina antes, Alba sigue hablando y vuelve a
+  reposo al acabar.
+- Si mandas un mensaje nuevo, lo que quedaba por decir de la respuesta anterior
+  se descarta y empieza a pensar el nuevo.
+- **Respuestas muy largas:** dice hasta 900 caracteres por respuesta (unas 6 a
+  10 frases, cerca de un minuto) y después avisa con una frase como «el resto
+  te lo dejé escrito en opencode». Ajusta el límite con
+  `settings.responseMaxChars` en `config/phrases.json` (`0` = sin límite).
+- Mientras lee la respuesta, sus frases propias esperan.
+- Para apagarlo: `ALBA_SPEAK_RESPONSES=false` en `.env` y reinicia opencode.
+- Cuando llegue la voz (Fase 2), estas mismas frases serán las que diga en voz
+  alta.
+
+Además, Alba tiene **frases propias** para cada momento (pensar, leer,
+programar, terminar, errores…) en `config/phrases.json`. Ver
+[Crea tus propias cosas → Frases de Alba](customize.md#frases-de-alba).
+
+Cualquier herramienta sin regla (`task`, `todowrite`…) llega igual pero no cambia
+la escena; puedes añadirla siguiendo [Crea tus propias cosas](customize.md#paso-4-que-reaccione-sola-opcional).
 
 ## Problemas frecuentes
 
@@ -128,6 +165,7 @@ no tiene regla; puedes añadirla siguiendo [Crea tus propias cosas](customize.md
 | opencode muestra «Alba: revisa .env» | Falta `ALBA_TOKEN` o el puerto es inválido | Corrige `.env` y reinicia opencode |
 | Llegan eventos pero Alba no cambia | Dormida, o la ventana/VTS desconectados | Lee las otras líneas de `alba status` |
 | Alba cambia demasiado | Reglas muy sensibles | Sube `cooldownMs` en `config/rules.json` |
+| Alba se queda en `coding` o no piensa ni habla | El bridge o opencode siguen con código anterior (los JSON se recargan solos; el código no) | Cierra y vuelve a abrir `npm start` **y** opencode después de actualizar Alba |
 
 Detalles técnicos del plugin: [`clients/opencode/README.md`](../clients/opencode/README.md).
 Del servidor MCP: [`clients/mcp/README.md`](../clients/mcp/README.md).

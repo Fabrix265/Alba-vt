@@ -1,6 +1,6 @@
 import fs from 'node:fs';
-import { resolveAssetPath } from '../../core/paths.mjs';
-import { clipKind } from './formats.mjs';
+import { findAssetFile } from '../../core/paths.mjs';
+import { clipKind, supportedClipExtensions } from './formats.mjs';
 
 export const MAX_CLIP_BYTES = 30 * 1024 * 1024;
 
@@ -21,8 +21,9 @@ export function resolveClip(resource, { rootDir } = {}) {
     return { clip: null, reason: 'not-a-clip' };
   }
   if (!rootDir) return { clip: null, reason: 'no-root' };
-  const absolute = resolveAssetPath(rootDir, resource.file);
-  if (!absolute) return { clip: null, reason: 'outside-assets' };
+  const found = findAssetFile(rootDir, resource.file, supportedClipExtensions());
+  if (found.reason) return { clip: null, reason: found.reason };
+  const absolute = found.path;
   const kind = clipKind(absolute);
   if (!kind) return { clip: null, reason: 'format' };
   try {
@@ -35,7 +36,7 @@ export function resolveClip(resource, { rootDir } = {}) {
   return {
     clip: {
       id: resource.id,
-      file: resource.file,
+      file: found.file,
       kind,
       loop: resource.loop !== false,
       fit: resource.fit ?? 'contain'

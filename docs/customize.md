@@ -43,7 +43,7 @@ Cada escena dice en qué **capa** va (`layer`):
 | Capa | Para qué | Ejemplos | ¿Termina sola? |
 |---|---|---|---|
 | `base` | El fondo, lo que hace Alba cuando no pasa nada | `idle`, `sleep` | No |
-| `activity` | Lo que está haciendo el agente ahora | `coding`, `reading`, `thinking` | No: hasta que llegue otra |
+| `activity` | Lo que está haciendo el agente ahora | `coding`, `reading`, `thinking`, `answering` | No: hasta que llegue otra |
 | `transient` | Una reacción corta | `celebrate`, `error`, `sad` | **Sí**, tras `durationMs` |
 
 Cuando una reacción `transient` termina, Alba vuelve a lo que estaba haciendo
@@ -138,6 +138,10 @@ crea en VTS un hotkey *Remove All Expressions* y asígnalo a `"idle"` en
      bloquea clics en el escritorio.
 2. **Guárdalo** en `assets/pngtuber/`, por ejemplo `assets/pngtuber/sorpresa.png`.
    Todo el arte debe estar dentro de `assets/` (git lo ignora; nunca se sube).
+   Para las escenas que ya existen (`thinking`, `coding`, `celebrate`…) basta
+   con este paso: nombra el archivo como la escena, con cualquier extensión
+   admitida, y Alba lo encuentra sola. Lista completa en la
+   [guía PNGTuber](pngtuber.md#2-agrega-tus-clips).
 3. **Regístralo** en `config/assets.json` con un id:
 
    ```json
@@ -209,7 +213,9 @@ npm run alba -- wow   # la ves sorprendida 3 segundos
 ```
 
 Si no pasa nada, mira la terminal del bridge: cada problema se avisa una vez
-con su causa (escena sin clip, hotkey inexistente, JSON inválido…).
+con su causa (escena sin clip, hotkey inexistente, JSON inválido…). Con
+`ALBA_LOG_EVENTS=true` en `.env`, además, cada evento muestra qué regla disparó
+y qué escena resultó.
 
 ---
 
@@ -259,6 +265,41 @@ listado en `"props"` de una escena o en `args.props` de un comando. Ver
 [Añadir un recurso](adding-an-asset.md#props-solo-vtuber).
 
 ---
+
+## Frases de Alba
+
+Alba dice frases propias cuando cambia de escena: al pensar, leer, programar,
+terminar, ante errores, al dormirse y al despertar. Viven en
+`config/phrases.json`, agrupadas por escena:
+
+```json
+"coding": {
+  "chance": 0.35,
+  "lines": [
+    "¡Manos a la obra!",
+    "Tecleando a toda velocidad."
+  ]
+}
+```
+
+- **Añadir frases:** escribe más líneas en `lines`. Guarda y listo (se recarga sola).
+- **No se repiten:** cada grupo se baraja y sale cada frase una vez antes de
+  volver a empezar; además, nunca repite ninguna de las últimas 40 que dijo
+  (`settings.memory`).
+- **No habla en cada evento:** `chance` es la probabilidad de hablar en ese
+  momento (0 a 1) y `settings.minGapMs` la pausa mínima entre frases (7 s por
+  defecto). Lo que dice opencode también cuenta para esa pausa.
+- **`ignoreGap: true`:** habla aunque haya hablado hace poco (útil en `sleep`,
+  `wake`, `angry`, `sad`).
+- **Grupos especiales:** `wake` (al despertarla), `sleep` (al dormirla) y
+  `long_response` (cuando la respuesta de opencode es muy larga). El
+  resto usa el nombre de la escena (`thinking`, `celebrate`, tus escenas nuevas…).
+- Para que una escena nueva hable, crea un grupo con su nombre.
+- Mientras Alba lee la respuesta de opencode (escena `answering`), sus frases
+  esperan.
+
+En modo PNGTuber las frases aparecen en el globo y mueven la boca; en VTuber,
+la boca se mueve. Cuando llegue la voz (Fase 2), las dirá en voz alta.
 
 ## Errores comunes
 

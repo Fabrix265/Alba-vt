@@ -38,6 +38,8 @@ comandos ya existían; los demás añaden expresiones y alias fáciles de record
 | `susto`, `buu` | `error` | Shock Sign; escena de 2,5 s. |
 | `sacudida`, `gelatina` | `shake` | Activa la animación Anim Shake; escena de 3 s. |
 | `reset` | `reset` | Remove Expressions; escena de 1,2 s y regreso a la actividad anterior. |
+| `pensar` | `thinking` | Pose de pensar, como al empezar una sesión. |
+| `leer` | `reading` | Pose de lectura, como cuando el agente lee archivos. |
 
 `list`, `status`, `hotkeys`, `help` y `--help` son funciones de la CLI, no entradas del JSON.
 `hotkeys` consulta el catálogo del modelo cargado que mantiene el bridge y muestra

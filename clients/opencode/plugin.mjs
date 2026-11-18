@@ -1,7 +1,8 @@
 import { createBridgeClient } from '../http/client.mjs';
-import { translate } from './translate.mjs';
+import { readEnvironment } from '../../src/environment.mjs';
+import { createTranslator } from './translate.mjs';
 
-export const AlbaPlugin = async ({ client, albaClient } = {}) => {
+export const AlbaPlugin = async ({ client, albaClient, speakResponses: forced } = {}) => {
   const warned = new Set();
   function warnOnce(cause, message) {
     if (warned.has(cause)) return;
@@ -15,6 +16,13 @@ export const AlbaPlugin = async ({ client, albaClient } = {}) => {
     warnOnce('config', 'Alba: revisa .env; plugin desactivado hasta reiniciar opencode');
     return {};
   }
+  // Cada instancia del plugin recuerda sus propias fases (pensar, responder...).
+  // ALBA_SPEAK_RESPONSES=true: Alba dice la respuesta del agente frase a frase.
+  let speakResponses = forced ?? false;
+  if (forced === undefined) {
+    try { speakResponses = readEnvironment().ALBA_SPEAK_RESPONSES === 'true'; } catch { /* sin .env: no habla */ }
+  }
+  const translate = createTranslator({ speakResponses });
   const queue = [];
   let draining = false;
   async function drain() {
@@ -30,13 +38,15 @@ export const AlbaPlugin = async ({ client, albaClient } = {}) => {
     } finally { draining = false; }
   }
   function forward(hook, input, output) {
-    const event = translate(hook, input, output);
-    if (!event) return;
-    if (queue.length >= 32) {
-      warnOnce('overflow', 'Alba: se omiten eventos por saturacion del bridge');
-      return;
+    const translated = translate(hook, input, output);
+    if (!translated) return;
+    for (const event of Array.isArray(translated) ? translated : [translated]) {
+      if (queue.length >= 32) {
+        warnOnce('overflow', 'Alba: se omiten eventos por saturacion del bridge');
+        return;
+      }
+      queue.push(event);
     }
-    queue.push(event);
     void drain();
   }
   return {

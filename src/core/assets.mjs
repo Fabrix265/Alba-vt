@@ -1,10 +1,9 @@
-import fs from 'node:fs';
 import { warnOnce } from './log.mjs';
-import { resolveAssetPath } from './paths.mjs';
+import { findAssetFile } from './paths.mjs';
 
 const KNOWN_TYPES = new Set(['item', 'clip']);
 
-export function createAssetRegistry({ assets = {}, rootDir, assetTypes, capabilities, logger = { warnOnce } }) {
+export function createAssetRegistry({ assets = {}, rootDir, assetTypes, assetExtensions = {}, capabilities, logger = { warnOnce } }) {
   const declared = Object.fromEntries(
     Object.entries(assets).filter(([key]) => !key.startsWith('$'))
   );
@@ -44,18 +43,18 @@ export function createAssetRegistry({ assets = {}, rootDir, assetTypes, capabili
       resolved.set(id, null);
       return null;
     }
-    const file = resolveAssetPath(rootDir, resource.file);
-    if (!file) {
+    const found = findAssetFile(rootDir, resource.file, assetExtensions[resource.type] ?? []);
+    if (found.reason === 'outside-assets') {
       logger.warnOnce(`asset-outside:${id}`, `el recurso ${id} debe estar dentro de assets/: ${resource.file}`);
       resolved.set(id, null);
       return null;
     }
-    if (!fs.existsSync(file)) {
+    if (!found.path) {
       logger.warnOnce(`asset-missing:${id}`, `falta el archivo del recurso ${id}: ${resource.file}`);
       resolved.set(id, null);
       return null;
     }
-    const value = { id, ...resource, path: file };
+    const value = { id, ...resource, file: found.file, path: found.path };
     resolved.set(id, value);
     return value;
   }

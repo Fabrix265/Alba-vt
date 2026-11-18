@@ -35,3 +35,20 @@ test('speak emite frames y termina en cero', async () => {
   assert.ok(frames.length > 1);
   assert.equal(frames.at(-1), 0);
 });
+
+test('loop mueve la boca hasta stopLoop y cierra la boca al terminar', async () => {
+  const { createSpeech } = await import('../../src/core/speech.mjs');
+  const frames = [];
+  const speech = createSpeech({ onFrame: (value) => frames.push(value), stepMs: 5 });
+  speech.loop();
+  speech.loop();
+  // El temporizador no retiene el proceso (unref); se espera de forma activa.
+  const hold = setInterval(() => {}, 5);
+  for (let i = 0; i < 200 && frames.length <= 3; i += 1) await new Promise((resolve) => setTimeout(resolve, 5));
+  clearInterval(hold);
+  assert.equal(speech.isLooping(), true);
+  assert.ok(frames.length > 3 && frames.every((value) => value > 0));
+  speech.stopLoop();
+  assert.equal(frames.at(-1), 0);
+  assert.equal(speech.isLooping(), false);
+});

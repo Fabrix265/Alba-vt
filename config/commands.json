@@ -79,6 +79,14 @@
     "reset": {
       "intent": "reset",
       "description": "Quita expresiones; respeta sleep y la duracion minima"
+    },
+    "pensar": {
+      "intent": "thinking",
+      "description": "Pone a Alba pensando (como al empezar una sesion)"
+    },
+    "leer": {
+      "intent": "reading",
+      "description": "Pone a Alba leyendo (como cuando el agente lee archivos)"
     }
   }
 }

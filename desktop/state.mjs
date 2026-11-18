@@ -3,7 +3,9 @@ import path from 'node:path';
 
 export const MIN_WINDOW_SIZE = 100;
 export const MAX_WINDOW_SIZE = 4000;
-const WINDOW_STATE_VERSION = 2;
+// v3: descarta tamanos inflados por el bug de arrastre con escala de Windows != 100 %.
+const WINDOW_STATE_VERSION = 3;
+export const SCALE_STEP = 1.15;
 
 export function parseSize(value) {
   if (typeof value !== 'string') return null;
@@ -47,12 +49,50 @@ export function isOnScreen(bounds, displays) {
   return displays.some((display) => intersects(bounds, display.workArea));
 }
 
+// Encoge la ventana para que quepa en el area y la mete dentro si se salia.
+export function fitInArea(bounds, area, min = MIN_WINDOW_SIZE) {
+  const width = Math.round(Math.max(min, Math.min(bounds.width, area.width)));
+  const height = Math.round(Math.max(min, Math.min(bounds.height, area.height)));
+  const x = Math.round(Math.min(Math.max(bounds.x ?? area.x, area.x), area.x + area.width - width));
+  const y = Math.round(Math.min(Math.max(bounds.y ?? area.y, area.y), area.y + area.height - height));
+  return { x, y, width, height };
+}
+
+// Escala la ventana manteniendo fijo el centro de la base (donde "apoya" Alba).
+export function scaleBounds(bounds, factor, area, min = MIN_WINDOW_SIZE) {
+  if (!bounds || !Number.isFinite(factor) || factor <= 0) return null;
+  const ratio = bounds.width / bounds.height;
+  let width = bounds.width * factor;
+  let height = bounds.height * factor;
+  const maxWidth = Math.min(area?.width ?? MAX_WINDOW_SIZE, MAX_WINDOW_SIZE);
+  const maxHeight = Math.min(area?.height ?? MAX_WINDOW_SIZE, MAX_WINDOW_SIZE);
+  // Respeta la proporcion al chocar con los limites.
+  if (width > maxWidth) { width = maxWidth; height = width / ratio; }
+  if (height > maxHeight) { height = maxHeight; width = height * ratio; }
+  if (width < min) { width = min; height = width / ratio; }
+  if (height < min) { height = min; width = height * ratio; }
+  const next = {
+    x: bounds.x + (bounds.width - width) / 2,
+    y: bounds.y + bounds.height - height,
+    width,
+    height
+  };
+  return area ? fitInArea(next, area, min) : {
+    x: Math.round(next.x), y: Math.round(next.y), width: Math.round(width), height: Math.round(height)
+  };
+}
+
 export function resolveBounds({ size = null, saved = null, displays = [], fallback = { width: 420, height: 560 } } = {}) {
   const chosen = size ?? (saved ? { width: saved.width, height: saved.height } : fallback);
   const width = Math.max(MIN_WINDOW_SIZE, Math.round(chosen.width));
   const height = Math.max(MIN_WINDOW_SIZE, Math.round(chosen.height));
-  if (saved && isOnScreen({ x: saved.x, y: saved.y, width, height }, displays)) {
-    return { x: saved.x, y: saved.y, width, height };
+  const placed = saved ? { x: saved.x, y: saved.y, width, height } : null;
+  const display = placed ? displays.find((entry) => intersects(placed, entry.workArea)) : null;
+  if (display) return fitInArea(placed, display.workArea);
+  const area = displays[0]?.workArea;
+  if (area) {
+    const fitted = fitInArea({ x: area.x, y: area.y, width, height }, area);
+    return { width: fitted.width, height: fitted.height };
   }
   return { width, height };
 }

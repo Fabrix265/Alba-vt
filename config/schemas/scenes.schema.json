@@ -28,6 +28,8 @@
             "type": "object",
             "additionalProperties": { "type": "number" }
           },
+          "lipSync": { "type": "boolean" },
+          "endsActivity": { "type": "boolean" },
           "description": { "type": "string" }
         },
         "additionalProperties": false

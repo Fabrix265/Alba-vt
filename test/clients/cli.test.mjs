@@ -125,7 +125,9 @@ test('alba status dice si llegaron eventos y de que agente', async (t) => {
   assert.ok(output.some((line) => /^Modo: fake/.test(line)));
   assert.ok(output.some((line) => /opencode: 2 \| ultimo session\.idle ahora mismo/.test(line)), output.join('\n'));
   const { state } = await options.client.state();
-  assert.equal(state.activity.total, 2);
-  assert.equal(state.activity.lastEvent.source, 'opencode');
-  assert.equal('text' in state.activity.lastEvent, false);
+  assert.equal(state.events.total, 2);
+  assert.equal(state.events.lastEvent.source, 'opencode');
+  assert.equal('text' in state.events.lastEvent, false);
+  // El registro de eventos no pisa la capa de actividad del director.
+  assert.notEqual(typeof state.activity?.total, 'number');
 });

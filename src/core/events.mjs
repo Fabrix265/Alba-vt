@@ -3,6 +3,13 @@ export const EVENT_TYPES = Object.freeze([
   'tool.end',
   'session.idle',
   'session.start',
+  // El agente empezo a trabajar en un mensaje (opencode: session.status busy).
+  'session.busy',
+  // El modelo esta pensando antes de responder o de usar una herramienta.
+  'reasoning',
+  // El agente empieza / termina de escribir su respuesta (sin el texto).
+  'response.start',
+  'response.end',
   'error',
   'say',
   'custom'

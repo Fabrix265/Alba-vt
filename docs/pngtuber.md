@@ -58,39 +58,56 @@ ALBA_PET_WINDOW=
 La ventana necesita archivos tuyos; el repo solo trae un `.gitkeep` y un
 README en `assets/pngtuber/`.
 
-**Mínimo absoluto:** un solo archivo
-
-```
-assets/pngtuber/idle.apng
-```
+**Mínimo absoluto:** un solo archivo, `assets/pngtuber/idle` con cualquier
+extensión admitida (`idle.gif`, `idle.png`, `idle.webm`…).
 
 Con ese archivo ya verás a Alba en todas las escenas (siempre la misma
 imagen). Sin él, la ventana muestra un marcador con el texto
 «Alba PNGTuber / Agrega tus clips en assets/pngtuber».
 
-**Para que cada reacción tenga su cara**, estos son los 11 ids ya declarados
-en `config/assets.json` y ya asignados en `config/scenes.json`. Si usas
-estos nombres exactos, **no tienes que tocar ningún JSON**:
+**Para que cada reacción tenga su cara**, nombra cada archivo como su escena y
+déjalo en `assets/pngtuber/`. **La extensión da igual** mientras sea una
+admitida: aunque `assets.json` diga `thinking.apng`, Alba encuentra
+`thinking.gif`, `thinking.png` o `thinking.webm`. No hace falta tocar ningún
+JSON.
 
-> La tabla muestra los valores por defecto del repo. Lo que manda siempre es
-> el campo `file` de `assets.json`: si tu `idle` apunta a `idle.gif` en vez
-> de `idle.apng`, simplemente usa esa ruta y respeta la extensión.
+| Archivo (cualquier extensión) | Escena | Cuándo aparece solo | Para verlo a mano |
+|---|---|---|---|
+| `idle` | `idle` | En reposo, cuando opencode espera tu mensaje | `npm run alba -- ring ring` |
+| `idle_talk` | `answering` y `idle` hablando | **Mientras opencode escribe su respuesta**, y con `avatar_say` | Pídele algo a opencode |
+| `thinking` | `thinking` | Cuando opencode recibe tu mensaje y entre paso y paso | `npm run alba -- pensar` |
+| `thinking_talk` | `thinking` hablando | Mientras habla estando pensando | `pensar` y luego un `say` |
+| `coding` | `coding` | Cuando el agente usa `bash`, `edit`, `write`, `patch` | `npm run alba -- focus` |
+| `reading` | `reading` | Cuando el agente usa `read`, `grep`, `glob`, `list`, `search` | `npm run alba -- leer` |
+| `celebrate` | `celebrate` (3 s) | Cuando opencode termina su trabajo; luego vuelve a `idle` | `npm run alba -- hello` |
+| `error` | `error` (2,5 s) | Al primer error | `npm run alba -- oops` |
+| `angry` | `angry` (2,5 s) | 2 errores en 30 s | `npm run alba -- enojo` |
+| `sad` | `sad` (4 s) | 3 errores en 2 minutos | `npm run alba -- llorar` |
+| `sleep` | `sleep` | Cuando la duermes | `npm run alba -- good night` |
 
-| Escena | Archivo esperado |
-|---|---|
-| `idle` (también `reset`) | `assets/pngtuber/idle.apng` |
-| `idle` hablando | `assets/pngtuber/idle_talk.apng` |
-| `thinking` | `assets/pngtuber/thinking.apng` |
-| `thinking` hablando | `assets/pngtuber/thinking_talk.apng` |
-| `coding` | `assets/pngtuber/coding.apng` |
-| `reading` | `assets/pngtuber/reading.apng` |
-| `celebrate` | `assets/pngtuber/celebrate.apng` |
-| `error` | `assets/pngtuber/error.apng` |
-| `sad` | `assets/pngtuber/sad.apng` |
-| `angry` | `assets/pngtuber/angry.apng` |
-| `sleep` | `assets/pngtuber/sleep.apng` |
+`shake`, `reset`, `deep_sleep` y `wake` no tienen clip propio y usan `idle`.
+`celebrate` ya no se usa al terminar opencode: aparece con `alba hello`. Las
+escenas cortas (`celebrate`, `error`, `angry`, `sad`) vuelven solas a lo que
+Alba hacía antes. Si una escena no tiene su archivo, se ve `idle`.
 
-`shake`, `deep_sleep` y `wake` no tienen clip propio y usan `idle`.
+**Ver en vivo qué dispara qué:** pon `ALBA_LOG_EVENTS=true` en `.env` y reinicia
+`npm start`. La terminal del bridge mostrará una línea por evento:
+
+```
+[alba] opencode tool.start (read) -> regla herramienta-lectura -> escena reading
+[alba] opencode tool.start (todowrite) -> sin regla (no cambia nada)
+[alba] opencode response.start -> regla respondiendo -> escena answering
+[alba] opencode say -> dice "Listo, creé el archivo prueba.txt."
+[alba] opencode session.idle -> regla sesion-idle -> idle cuando termine de hablar
+[alba] comando "hello" -> escena celebrate
+```
+
+Así ves qué regla eligió cada clip, y qué herramientas no tienen regla todavía
+(puedes añadirlas siguiendo [Crea tus propias cosas](customize.md#paso-4-que-reaccione-sola-opcional)).
+`npm run alba -- status` muestra además el último evento de cada agente.
+
+Para probar la versión «hablando», envía un `say` con
+[HTTP](../clients/http/examples.md) o pídele al agente que use `avatar_say`.
 
 **Si prefieres tus propios nombres**, cambia la ruta en `config/assets.json`:
 
@@ -106,8 +123,9 @@ estos nombres exactos, **no tienes que tocar ningún JSON**:
 ```
 
 Si cambias el **id** (`idle`) en vez de la ruta, actualiza también `clip` y
-`talkingClip` en `config/scenes.json`. La extensión del archivo debe ser una
-de las admitidas.
+`talkingClip` en `config/scenes.json`. Si el archivo de `file` no existe, Alba
+busca el mismo nombre con otra extensión admitida; si hay varios, prefiere en
+este orden: `.png`, `.gif`, `.apng`, `.webp`, `.webm`, `.mp4`.
 
 **Orden en que se busca el clip:** el de hablar (`talkingClip`), el de la
 escena (`clip`), luego `idle`, y si falta todo, el marcador. Por eso basta
@@ -125,9 +143,23 @@ con `idle` para arrancar y el resto es opcional.
 - Un clip ausente o inválido nunca rompe el bridge: se avisa una vez por
   causa y la ventana sigue funcionando.
 
-Si tu archivo es un PNG normal, nombralo `idle.png` y pon
-`"file": "assets/pngtuber/idle.png"` en `assets.json`; no lo renombres a
-`.apng` a menos que realmente sea APNG.
+Si tu archivo es un PNG normal, déjalo como `.png`; no lo renombres a `.apng`
+a menos que realmente sea APNG.
+
+**Para que los cambios no sean bruscos:**
+
+- Entre un clip y otro hay un **fundido** de 250 ms: el nuevo aparece sobre el
+  anterior y la ventana nunca queda vacía mientras carga. Ajústalo con
+  `ALBA_PET_TRANSITION_MS` en `.env` (`0` = corte seco; prueba `400` para algo
+  más suave; máximo `2000`).
+- Usa **el mismo tamaño de lienzo** y la misma posición del personaje en todos
+  los clips: si cambian, Alba parece saltar aunque haya fundido.
+- Haz que cada clip **empiece y termine en una pose parecida** a `idle`
+  (misma postura, ojos abiertos). Así el cambio se nota en la expresión, no en
+  el cuerpo.
+- Si cambia **demasiado seguido**, súbele el `cooldownMs` a la regla en
+  `config/rules.json` o el mínimo por escena (`minStateDurationMs`) en
+  `config/persona.json`. Con `ALBA_LOG_EVENTS=true` ves qué regla la mueve.
 
 ### 3. Levanta el bridge
 
@@ -139,7 +171,7 @@ npm start       # arranca el bridge y abre la ventana PNGTuber
 En una segunda terminal:
 
 ```bash
-npm run demo    # idle → thinking → coding → celebrate → idle
+npm run demo    # idle → thinking → coding → answering → idle
 ```
 
 Otras formas de abrir la ventana:
@@ -165,7 +197,12 @@ Qué esperas ver en pantalla:
 - Si todavía no hay clip o no hay conexión, la ventana **nunca queda
   transparente/vacía**: muestra el marcador con el motivo («Conectando con
   el bridge…» o «Agrega tus clips en assets/pngtuber»).
-- Un **globo de diálogo** con el texto cuando alguien usa `avatar_say`.
+- Un **globo de diálogo** cuando Alba habla: sus frases propias, la respuesta
+  de opencode o `avatar_say`. El texto aparece letra por letra. Elige su estilo
+  con `ALBA_PET_BUBBLE` en `.env`: `terminal` (por defecto, monoespaciado con
+  cursor), `comic` (contorno grueso con colita), `subtitulo` (barra abajo, no
+  tapa la cara) o `tarjeta` (azul con etiqueta «Alba»). Reinicia la ventana
+  para aplicarlo.
 
 Chequeos rápidos:
 
@@ -197,9 +234,10 @@ abierta) y `"clients": 1` (la ventana está conectada).
   clips al personaje para que el área sea lo más ajustada posible.
 - Arrastra con el botón izquierdo para moverla; la posición se guarda y se
   restaura si sigue dentro de una pantalla.
-- En modo interacción (`Ctrl+Alt+A`), arrastra un borde o una esquina de la
-  ventana para cambiar su tamaño: Alba se escala con la ventana. El tamaño se
-  guarda y se restaura al reiniciar.
+- **Tamaño:** en el icono de la bandeja, menú **Tamaño → Agrandar / Achicar /
+  Tamaño original del clip**. En modo interacción (`Ctrl+Alt+A`) también puedes
+  usar la **rueda del ratón** sobre Alba o arrastrar un borde o una esquina. El
+  tamaño se guarda y se restaura al reiniciar.
 - El menú de la bandeja permite mostrar a Alba, reconectar o salir.
 - Solo hay una ventana a la vez: si ya está abierta, `npm run pet` no abre otra.
 - Los clientes de siempre (plugin de opencode, MCP, HTTP, CLI) funcionan
@@ -219,6 +257,9 @@ abierta) y `"clients": 1` (la ventana está conectada).
 | Variable | Para qué sirve | Por defecto |
 |---|---|---|
 | `ALBA_ADAPTER` | Modo: `vtuber`, `pngtuber` o `fake` (alias `vts` y `pet`) | `vtuber` |
+| `ALBA_PET_BUBBLE` | Estilo del globo: `terminal`, `comic`, `subtitulo` o `tarjeta` | `terminal` |
+| `ALBA_PET_TRANSITION_MS` | Fundido entre clips en ms (`0` = corte seco, máx. 2000) | `250` |
+| `ALBA_LOG_EVENTS` | `true` = la terminal del bridge muestra evento → regla → escena | `false` |
 | `ALBA_PET_PORT` | Puerto WebSocket local de la ventana | `8791` |
 | `ALBA_PET_LAUNCH` | Abrir la ventana al arrancar el bridge | `true` |
 | `ALBA_PET_TOKEN` | Token de la ventana; vacío = `ALBA_TOKEN` | vacío |
@@ -234,13 +275,13 @@ abierta) y `"clients": 1` (la ventana está conectada).
 {
   "idle": {
     "type": "clip",
-    "file": "assets/pngtuber/idle.apng",
+    "file": "assets/pngtuber/idle.gif",
     "fit": "contain",
     "loop": true
   },
   "idle_talk": {
     "type": "clip",
-    "file": "assets/pngtuber/idle_talk.apng",
+    "file": "assets/pngtuber/idle_talk.gif",
     "fit": "contain",
     "loop": true
   }
@@ -311,7 +352,7 @@ y después retransmite cada cambio de escena (mensaje `state`):
   "talking": false,
   "clip": {
     "id": "coding",
-    "file": "assets/pngtuber/coding.apng",
+    "file": "assets/pngtuber/coding.gif",
     "kind": "image",
     "loop": true,
     "fit": "contain"
@@ -365,6 +406,9 @@ Para una prueba sin ventana ni conexiones usa `ALBA_ADAPTER=fake` o
 | Un margen vacío bloquea clics del escritorio | El clip tiene mucho lienzo transparente alrededor | Recorta el lienzo del clip al personaje |
 | No aparece el globo de diálogo | Alba dormida, o el texto llegó vacío | `npm run alba -- ring ring` y vuelve a probar `avatar_say` |
 | ¿Está conectada a opencode? | — | `npm run alba -- status`; ver [Conectar opencode](opencode.md) |
-| La ventana queda enorme o diminuta | Tu clip tiene ese tamaño natural, o hay un tamaño guardado | Redimensiona en modo interacción o fija `ALBA_PET_WINDOW=240x240` en `.env` |
+| La ventana queda enorme o diminuta | Tu clip tiene ese tamaño natural, o hay un tamaño guardado | Bandeja → **Tamaño** → Achicar o «Tamaño original del clip», o fija `ALBA_PET_WINDOW=240x240` en `.env` |
+| Al mantener el clic la ventana crecía sola | Error de Electron con la escala de Windows al 125 % o más (corregido) | Actualiza; el tamaño guardado inflado se descarta al abrir |
+| Un clip aparece de golpe | `ALBA_PET_TRANSITION_MS=0` | Pon `250` o más y reinicia el bridge |
+| No sé qué regla puso un clip | — | `ALBA_LOG_EVENTS=true` y mira la terminal del bridge |
 | `ALBA_PET_WINDOW` no hace nada | Valor inválido o bridge sin reiniciar | Usa `anchoxalto` (p. ej. `240x240`), revisa `npm run doctor` y reinicia el bridge |
 | Al reiniciar vuelve al tamaño viejo | `ALBA_PET_WINDOW` sin definir y `window.json` con otro tamaño | Arrastra el borde con `Ctrl+Alt+A`; el último tamaño se guarda |

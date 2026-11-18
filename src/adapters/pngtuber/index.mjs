@@ -1,6 +1,7 @@
 import { createCapabilities } from '../../core/capabilities.mjs';
 import { warnOnce } from '../../core/log.mjs';
 import { createHub } from './hub.mjs';
+import { supportedClipExtensions } from './formats.mjs';
 import { createPetLauncher } from './launcher.mjs';
 import { sayMessage, stateMessage } from './protocol.mjs';
 import { selectClip } from './resolve.mjs';
@@ -88,6 +89,8 @@ export function createPngtuberAdapter({
   return {
     name: 'pngtuber',
     assetTypes: Object.freeze(['clip']),
+    // Un clip puede tener cualquiera de estas extensiones aunque assets.json diga otra.
+    assetExtensions: Object.freeze({ clip: supportedClipExtensions() }),
     capabilities,
     connect,
     disconnect,

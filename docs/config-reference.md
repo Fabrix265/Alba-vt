@@ -28,6 +28,10 @@ Copia `.env.example` a `.env`. Los valores por defecto están en `.env.example`.
 | `ALBA_PET_LAUNCH` | Abrir la ventana al arrancar el bridge | `true` |
 | `ALBA_PET_TOKEN` | Clave de la ventana; vacío = usa `ALBA_TOKEN` | vacío |
 | `ALBA_PET_WINDOW` | Tamaño fijo `anchoxalto` (100–4000); vacío = automático | vacío |
+| `ALBA_PET_TRANSITION_MS` | Fundido entre clips en ms (`0` = corte seco, máx. 2000) | `250` |
+| `ALBA_SPEAK_RESPONSES` | `true` = Alba dice la respuesta de opencode frase a frase (solo viaja al bridge local) | `true` |
+| `ALBA_PET_BUBBLE` | Estilo del globo PNGTuber: `terminal`, `comic`, `subtitulo` o `tarjeta` | `terminal` |
+| `ALBA_LOG_EVENTS` | `true` = la terminal del bridge muestra cada evento, la regla que disparó y la escena | `false` |
 
 ## `scenes.json`
 
@@ -51,6 +55,8 @@ usan reglas, comandos y el MCP.
 | `props` | VTuber | Ids de props que aparecen con la escena |
 | `holdPoseWhileAsleep` | VTuber | Mantener `parameters` mientras duerme (escena `sleep`) |
 | `parameterRefreshMs` | VTuber | Cada cuánto se renueva esa pose (50–500) |
+| `lipSync` | ambos | `true` = la boca se mueve mientras dura la escena (ej. `answering`); en PNGTuber muestra `talkingClip` |
+| `endsActivity` | ambos | Solo `transient`: al terminar vuelve a la capa `base` (ej. `celebrate` → `idle`) en vez de a la actividad anterior |
 | `description` | ambos | Nota para ti |
 
 Escenas especiales: `idle` (reposo; si una intención no existe se usa esta), `sleep`, `deep_sleep` y
@@ -69,7 +75,7 @@ Reglas automáticas: evento → escena.
 |---|---|
 | `id` | **Obligatorio.** Nombre único de la regla |
 | `intent` | **Obligatorio.** Escena que se pide |
-| `when.type` | Tipo de evento (texto o lista): `tool.start`, `tool.end`, `session.start`, `session.idle`, `error`, `say`, `custom` |
+| `when.type` | Tipo de evento (texto o lista): `session.start`, `session.busy`, `reasoning`, `tool.start`, `tool.end`, `response.start`, `response.end`, `session.idle`, `error`, `say`, `custom` |
 | `when.tool` | Nombre de herramienta (texto o lista) |
 | `when.source` | Quién envía (`opencode`, `mcp`, `demo`, `http`…) |
 | `when.ok` | `true` / `false` |
@@ -123,10 +129,28 @@ Recursos por id. Ver [Añadir un recurso](adding-an-asset.md).
 | Campo | Qué hace |
 |---|---|
 | `type` | **Obligatorio.** `clip` (PNGTuber) o `item` (prop VTuber) |
-| `file` | **Obligatorio.** Ruta dentro de `assets/` |
+| `file` | **Obligatorio.** Ruta dentro de `assets/`. En clips, si no existe se acepta el mismo nombre con otra extensión admitida |
 | `fit`, `loop` | Clips: ajuste y repetición |
 | `position`, `size`, `layer` | Props: posición, tamaño y capa |
 | `description` | Nota para ti |
+
+## `phrases.json`
+
+Frases propias de Alba por escena. Ver [Frases de Alba](customize.md#frases-de-alba).
+
+| Campo | Qué hace | Por defecto |
+|---|---|---|
+| `settings.minGapMs` | Pausa mínima entre dos frases (ms) | 7000 |
+| `settings.chance` | Probabilidad de hablar si el grupo no indica otra | 0.5 |
+| `settings.memory` | Cuántas frases recientes no repite | 40 |
+| `settings.responseMaxChars` | Caracteres de la respuesta de opencode que dice por turno; luego dice una frase de `long_response` (`0` = sin límite) | 900 |
+| `phrases.<escena>.lines` | **Obligatorio.** Lista de frases (máx. 280 caracteres cada una) | — |
+| `phrases.<escena>.chance` | Probabilidad de hablar al entrar en esa escena (0 a 1) | `settings.chance` |
+| `phrases.<escena>.ignoreGap` | Habla aunque haya hablado hace poco | `false` |
+| `phrases.<escena>.description` | Nota para ti | — |
+
+Grupos especiales: `wake` (al despertarla), `sleep` (al dormirla) y
+`long_response` (cuando la respuesta supera `responseMaxChars`; se dice siempre).
 
 ## `persona.json`
 

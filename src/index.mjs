@@ -9,6 +9,7 @@ import { createAssetRegistry } from './core/assets.mjs';
 import { createAdapter, isAdapterName, normalizeAdapterName } from './adapters/registry.mjs';
 import { createBridgeServer } from './api/server.mjs';
 import { log, warn, error } from './core/log.mjs';
+import { describeApplied, describeEvent } from './core/describe.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 loadEnv({ path: path.join(root, '.env'), quiet: true });
@@ -33,7 +34,8 @@ if (!isAdapterName(adapterName)) {
   process.exit(1);
 }
 const adapter = createAdapter(normalizeAdapterName(adapterName), { rootDir: root, env });
-let assets = createAssetRegistry({ assets: config.assets, rootDir: root, assetTypes: adapter.assetTypes });
+const registryOptions = { rootDir: root, assetTypes: adapter.assetTypes, assetExtensions: adapter.assetExtensions };
+let assets = createAssetRegistry({ assets: config.assets, ...registryOptions });
 assets.report();
 
 const processControl = adapter.name === 'vtuber' ? createVtsProcess({ env }) : undefined;
@@ -41,16 +43,31 @@ const app = createApp({ config, adapter, processControl });
 loader.onChange((next) => {
   config = next;
   app.updateConfig(next);
-  assets = createAssetRegistry({ assets: next.assets, rootDir: root, assetTypes: adapter.assetTypes });
+  assets = createAssetRegistry({ assets: next.assets, ...registryOptions });
   assets.report();
   log('config recargada');
 });
 loader.startWatching();
 
+// ALBA_LOG_EVENTS=true muestra en esta terminal que evento llego, que regla
+// disparo y que escena resulto. Util para ajustar reglas y probar clips.
+const logEvents = env.ALBA_LOG_EVENTS === 'true';
+const onEvent = !logEvents ? app.handleEvent : async (raw) => {
+  const result = await app.handleEvent(raw);
+  log(describeEvent(result));
+  return result;
+};
+const onIntent = !logEvents ? app.handleIntent : async (raw) => {
+  const result = await app.handleIntent(raw);
+  const origin = raw?.command ? `comando "${raw.command}"` : `intencion ${raw?.intent}`;
+  log(`${origin} -> ${describeApplied(result.applied, result.intent)}`);
+  return result;
+};
+
 const server = createBridgeServer({
   port: bridgePort, token,
   getState: app.getState, subscribe: app.onChange,
-  onEvent: app.handleEvent, onIntent: app.handleIntent
+  onEvent, onIntent
 });
 
 const ticker = setInterval(() => app.tick(), 250);

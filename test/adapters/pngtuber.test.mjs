@@ -155,7 +155,22 @@ test('PNGTuber solo acepta clips dentro de assets/', async () => {
   fs.writeFileSync(path.join(rootDir, 'outside.webm'), 'webm');
   assert.equal(resolveClip({ id: 'a', type: 'clip', file: 'outside.webm' }, { rootDir }).reason, 'outside-assets');
   assert.equal(resolveClip({ id: 'b', type: 'clip', file: 'assets/../outside.webm' }, { rootDir }).reason, 'outside-assets');
-  assert.equal(resolveClip({ id: 'c', type: 'clip', file: 'assets/pngtuber/idle.txt' }, { rootDir }).reason, 'format');
+  fs.writeFileSync(path.join(rootDir, 'assets', 'pngtuber', 'notes.txt'), 'txt');
+  assert.equal(resolveClip({ id: 'c', type: 'clip', file: 'assets/pngtuber/notes.txt' }, { rootDir }).reason, 'format');
   assert.equal(resolveClip({ id: 'd', type: 'clip', file: 'assets/pngtuber/idle.webm' }, { rootDir }).reason, null);
+  assert.equal(resolveClip({ id: 'e', type: 'clip', file: 'assets/pngtuber/nada.png' }, { rootDir }).reason, 'missing');
+  fs.rmSync(rootDir, { recursive: true, force: true });
+});
+
+test('PNGTuber acepta el mismo nombre con otra extension admitida', async () => {
+  const { resolveClip } = await import('../../src/adapters/pngtuber/resolve.mjs');
+  const { rootDir } = fixture();
+  fs.writeFileSync(path.join(rootDir, 'assets', 'pngtuber', 'Thinking.GIF'), 'gif');
+  const { clip } = resolveClip({ id: 'thinking', type: 'clip', file: 'assets/pngtuber/thinking.apng' }, { rootDir });
+  assert.equal(clip.file, 'assets/pngtuber/Thinking.GIF');
+  assert.equal(clip.kind, 'image');
+  // Si existen varias, gana la imagen sobre el video.
+  fs.writeFileSync(path.join(rootDir, 'assets', 'pngtuber', 'idle.png'), 'png');
+  assert.equal(resolveClip({ id: 'idle', type: 'clip', file: 'assets/pngtuber/idle.apng' }, { rootDir }).clip.file, 'assets/pngtuber/idle.png');
   fs.rmSync(rootDir, { recursive: true, force: true });
 });

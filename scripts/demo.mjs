@@ -55,10 +55,17 @@ export async function runDemo({ fake = false, write = console.log } = {}) {
     await pause(holdMs);
     show((await send({ type: 'tool.start', tool: 'bash' })).state, 'coding');
     await pause(holdMs);
-    show((await send({ type: 'tool.end', tool: 'bash', ok: true })).state, 'celebrate');
-    // Clear the activity/props while the transient finishes, then return to base.
-    const ended = (await send({ type: 'session.idle' })).state;
-    show(await finishTransient(ended), 'idle');
+    show((await send({ type: 'response.start' })).state, 'answering');
+    await pause(holdMs);
+    // Al terminar el turno (session.idle) vuelve a reposo; si Alba esta
+    // diciendo una frase, espera a que la termine.
+    await send({ type: 'session.idle' });
+    let state = (await client.state()).state;
+    for (let waited = 0; state.effective !== 'idle' && waited < 15000; waited += 250) {
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      state = (await client.state()).state;
+    }
+    show(state, 'idle');
     write(`[demo] completada: ${observed.join(' -> ')}`);
     return observed;
   } finally {

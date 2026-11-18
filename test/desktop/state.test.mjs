@@ -4,7 +4,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {
-  applyResize, intersects, isOnScreen, loadWindowState, parseSize, resolveBounds, saveWindowState
+  applyResize, fitInArea, intersects, isOnScreen, loadWindowState, parseSize, resolveBounds, saveWindowState,
+  scaleBounds, SCALE_STEP
 } from '../../desktop/state.mjs';
 
 test('guarda y recupera la posicion de la ventana', () => {
@@ -79,4 +80,26 @@ test('la ventana solo se restaura si intersecta una pantalla', () => {
   assert.equal(isOnScreen({ x: -200, y: 100, width: 420, height: 560 }, displays), true);
   assert.equal(isOnScreen({ x: 3000, y: 100, width: 420, height: 560 }, displays), false);
   assert.equal(intersects({ x: 0, y: 0, width: 10, height: 10 }, displays[0].workArea), true);
+});
+test('un tamano inflado por el bug de arrastre se reduce a la pantalla y vuelve a entrar en ella', () => {
+  // Estado real: pantalla 1536x864 al 125 % y ventana guardada de 1682x1176 en y=-704.
+  const displays = [{ workArea: { x: 0, y: 0, width: 1536, height: 824 } }];
+  const saved = { x: 1225, y: -704, width: 1682, height: 1176 };
+  assert.deepEqual(resolveBounds({ saved, displays }), { x: 0, y: 0, width: 1536, height: 824 });
+  assert.deepEqual(fitInArea({ x: -50, y: 900, width: 300, height: 400 }, displays[0].workArea), { x: 0, y: 424, width: 300, height: 400 });
+});
+
+test('scaleBounds agranda y achica manteniendo la base y la proporcion', () => {
+  const area = { x: 0, y: 0, width: 1536, height: 824 };
+  const bounds = { x: 600, y: 300, width: 200, height: 400 };
+  const bigger = scaleBounds(bounds, SCALE_STEP, area);
+  assert.equal(bigger.width, 230);
+  assert.equal(bigger.height, 460);
+  assert.equal(bigger.y + bigger.height, 700, 'la base no se mueve');
+  const smaller = scaleBounds(bounds, 1 / SCALE_STEP, area);
+  assert.ok(smaller.width < 200 && smaller.height < 400);
+  assert.equal(scaleBounds({ ...bounds, width: 100, height: 200 }, 0.5, area).width, 100, 'no baja del minimo');
+  const capped = scaleBounds(bounds, 10, area);
+  assert.equal(capped.height, 824);
+  assert.equal(capped.width, 412, 'respeta la proporcion al tocar el limite');
 });

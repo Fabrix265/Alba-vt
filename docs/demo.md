@@ -8,13 +8,13 @@ Envia exclusivamente eventos canonicos por HTTP al bridge local:
 | session.idle | idle |
 | session.start | thinking |
 | tool.start (bash) | coding |
-| tool.end (bash, ok=true) | celebrate |
-| session.idle y expiracion del transiente | idle |
+| response.start | answering |
+| session.idle (fin del turno) | idle (al terminar la frase que este diciendo) |
 
-Respeta la duracion minima configurada y espera a que termine celebrate. Si hay
+Respeta la duracion minima configurada y espera a que Alba termine de hablar. Si hay
 otros clientes activos o modificaste las reglas, informa de la escena observada
 cuando difiere de la esperada. No cambia la configuracion ni reinicia el bridge;
-para repetirla espera el cooldown de fin-exitoso (15 segundos por defecto).
+se puede repetir en cuanto termina.
 No despierta a Alba, cierra VTS ni ejecuta herramientas del sistema. Con
 `ALBA_ADAPTER=pngtuber`, la misma secuencia mueve la ventana y cambia de clip;
 un clip ausente solo muestra el marcador.
@@ -24,11 +24,13 @@ el adapter fake: no abre conexiones, no necesita VTS ni token y solo imprime la
 secuencia. Los props de la salida son los **solicitados**; que aparezcan en la
 pantalla depende del archivo y los permisos. Sin PNG la secuencia sigue completa.
 
-Las cinco reacciones base de rules.json son thinking (inicio), coding
-(herramienta de escritura), celebrate (fin exitoso), idle (fin de sesion) y error
-(primer fallo). Se conservan reading y los contadores adicionales angry
-(2 errores/30 s) y sad (3 errores/120 s). Sad tiene prioridad sobre angry cuando
-coinciden. Hay cooldowns y debounce; los contadores se reinician cuando disparan.
+Las reglas de rules.json reflejan las fases del agente: thinking (empieza o
+piensa), reading y coding (segun la herramienta), answering (escribe la
+respuesta, con la boca en movimiento) e idle (reposo, cuando termina de decir la
+respuesta). celebrate queda para los comandos manuales como `alba hello`. Los errores dan error, y
+angry (2 errores/30 s) o sad (3 errores/120 s) si se repiten; sad tiene
+prioridad sobre angry. Las reglas de fase no tienen cooldown: el director evita
+el parpadeo con minStateDurationMs y aplica siempre la fase mas reciente.
 
 Las condiciones `when.state` admiten asleep, deepSleep, effective, base y activity
 (incluido null). Por ejemplo, sesion-inicio exige asleep=false. El estado procede

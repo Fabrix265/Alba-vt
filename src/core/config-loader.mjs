@@ -9,7 +9,8 @@ export const CONFIG_FILES = Object.freeze([
   'rules',
   'bindings',
   'assets',
-  'commands'
+  'commands',
+  'phrases'
 ]);
 
 export function createConfigLoader({ configDir } = {}) {

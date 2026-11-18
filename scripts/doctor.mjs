@@ -58,7 +58,7 @@ export async function runDoctor({
     config = createConfigLoader({ configDir: path.join(rootDir, 'config') }).load({ initial: true });
     check('ok', 'Config', 'Todos los JSON cumplen sus schemas');
     const registry = createAssetRegistry({
-      assets: config.assets, rootDir, assetTypes: adapter?.assetTypes,
+      assets: config.assets, rootDir, assetTypes: adapter?.assetTypes, assetExtensions: adapter?.assetExtensions,
       logger: { warnOnce() {} }
     });
     inventory.assets = registry.list().map((id) => {
@@ -67,7 +67,7 @@ export async function runDoctor({
       if (supported && type === 'clip') {
         // Misma validacion que usa el adapter: carpeta, formato, tamano y existencia.
         const { clip, reason } = resolveClip({ ...config.assets[id], id }, { rootDir });
-        return { id, type, supported, available: Boolean(clip), reason: clip ? null : CLIP_REASONS[reason] ?? reason };
+        return { id, type, supported, available: Boolean(clip), file: clip?.file ?? null, reason: clip ? null : CLIP_REASONS[reason] ?? reason };
       }
       const available = supported ? Boolean(registry.resolve(id)) : false;
       return { id, type, supported, available };
@@ -213,7 +213,7 @@ export function formatDoctor(report) {
     lines.push('\nRecursos:');
     for (const a of report.inventory.assets) {
       const state = a.supported === false ? 'no aplica al adapter'
-        : a.available ? 'presente' : a.reason ? `no disponible (${a.reason})` : 'ausente/no compatible';
+        : a.available ? `presente${a.file ? ` (${a.file})` : ''}` : a.reason ? `no disponible (${a.reason})` : 'ausente/no compatible';
       lines.push(`  ${a.id} (${a.type}): ${state}`);
     }
   }

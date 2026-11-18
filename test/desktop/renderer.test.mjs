@@ -10,6 +10,7 @@ function makeElement() {
   const element = {
     textContent: '',
     style: {},
+    dataset: {},
     classList: {
       add: (...names) => names.forEach((name) => classes.add(name)),
       remove: (...names) => names.forEach((name) => classes.delete(name)),
@@ -39,7 +40,7 @@ function makeElement() {
 }
 
 async function loadRenderer() {
-  const ids = ['clip-image', 'clip-video', 'pet', 'placeholder', 'placeholder-hint', 'bubble', 'status'];
+  const ids = ['clip-image', 'clip-video', 'clip-image-b', 'clip-video-b', 'pet', 'placeholder', 'placeholder-hint', 'bubble', 'bubble-text', 'status'];
   const elements = Object.fromEntries(ids.map((id) => [id, makeElement()]));
   const handlers = { state: null, interactive: null, connection: null };
   const documentStub = {
@@ -84,9 +85,11 @@ test('sin clip el marcador sigue visible y explica que faltan los clips', async 
   assert.match(elements['placeholder-hint'].textContent, /Agrega tus clips/);
 });
 
-test('un clip se muestra y oculta el marcador; volver a null lo recupera', async () => {
+test('un clip se muestra al cargar y oculta el marcador; volver a null lo recupera', async () => {
   const { elements, sendState } = await loadRenderer();
   sendState({ type: 'state', clip: { kind: 'image', file: 'assets/pngtuber/idle.gif', fit: 'contain', loop: true } });
+  assert.equal(elements['clip-image'].classList.contains('visible'), false, 'espera al primer cuadro');
+  elements['clip-image'].dispatch('load');
   assert.equal(elements['clip-image'].classList.contains('visible'), true);
   assert.equal(elements.placeholder.classList.contains('visible'), false);
 
@@ -98,9 +101,11 @@ test('un clip se muestra y oculta el marcador; volver a null lo recupera', async
 test('un clip que no se puede decodificar cae al marcador y no deja la ventana vacia', async () => {
   const { elements, sendState } = await loadRenderer();
   sendState({ type: 'state', clip: { kind: 'image', file: 'assets/pngtuber/idle.gif', fit: 'contain', loop: true } });
+  elements['clip-image'].dispatch('load');
   assert.equal(elements['clip-image'].classList.contains('visible'), true);
+  sendState({ type: 'state', clip: { kind: 'image', file: 'assets/pngtuber/roto.gif', fit: 'contain', loop: true } });
 
-  elements['clip-image'].dispatch('error');
+  elements['clip-image-b'].dispatch('error');
   assert.equal(elements['clip-image'].classList.contains('visible'), false);
   assert.equal(elements.placeholder.classList.contains('visible'), true);
 });
@@ -108,8 +113,31 @@ test('un clip que no se puede decodificar cae al marcador y no deja la ventana v
 test('el globo muestra el texto de say y fit stretch se traduce a fill', async () => {
   const { elements, sendState } = await loadRenderer();
   sendState({ type: 'say', text: 'hola' });
-  assert.equal(elements.bubble.textContent, 'hola');
   assert.equal(elements.bubble.classList.contains('visible'), true);
+  assert.equal(elements['bubble-text'].textContent, 'h', 'escribe letra por letra');
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  assert.equal(elements['bubble-text'].textContent, 'hola');
   sendState({ type: 'state', clip: { kind: 'image', file: 'assets/pngtuber/idle.png', fit: 'stretch' } });
   assert.equal(elements['clip-image'].style.objectFit, 'fill');
+});
+
+test('al cambiar de clip el nuevo se funde sobre el anterior en la otra capa', async () => {
+  const { elements, sendState } = await loadRenderer();
+  sendState({ type: 'state', clip: { kind: 'image', file: 'assets/pngtuber/idle.gif' } });
+  elements['clip-image'].dispatch('load');
+  sendState({ type: 'state', clip: { kind: 'image', file: 'assets/pngtuber/coding.gif' } });
+  // Mientras carga, sigue viendose el anterior: nunca queda vacia.
+  assert.equal(elements['clip-image'].classList.contains('visible'), true);
+  assert.equal(elements['clip-image-b'].classList.contains('visible'), false);
+  assert.match(elements['clip-image-b'].src, /coding\.gif$/);
+  elements['clip-image-b'].dispatch('load');
+  assert.equal(elements['clip-image-b'].classList.contains('visible'), true);
+  assert.equal(elements['clip-image'].classList.contains('visible'), false);
+  // Un cambio rapido descarta la carga vieja: solo se muestra el ultimo pedido.
+  sendState({ type: 'state', clip: { kind: 'image', file: 'assets/pngtuber/sad.gif' } });
+  sendState({ type: 'state', clip: { kind: 'image', file: 'assets/pngtuber/angry.gif' } });
+  assert.match(elements['clip-image'].src, /angry\.gif$/);
+  elements['clip-image'].dispatch('load');
+  assert.equal(elements['clip-image'].classList.contains('visible'), true);
+  assert.equal(elements['clip-image-b'].classList.contains('visible'), false);
 });

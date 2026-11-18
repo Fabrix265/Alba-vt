@@ -26,7 +26,7 @@ los envía por HTTP. Nada más. Qué cara pone Alba lo deciden las reglas de
 | Campo | Valores |
 |---|---|
 | `source` | Nombre corto del cliente. Aparece en `alba status` y en `when.source` de las reglas |
-| `type` | `tool.start`, `tool.end`, `session.start`, `session.idle`, `error`, `say`, `custom` |
+| `type` | `session.start`, `session.busy`, `reasoning`, `tool.start`, `tool.end`, `response.start`, `response.end`, `session.idle`, `error`, `say`, `custom`. Ver la tabla de [Conectar opencode](opencode.md#qué-eventos-envía-opencode) para su significado |
 | `tool` | Nombre de la herramienta, o `null` |
 | `ok` | `true` / `false` / `null` |
 | `text` | Solo para `say` (lo que dice Alba) o para reglas con `textIncludes` |

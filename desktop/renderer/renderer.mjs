@@ -1,9 +1,15 @@
-const image = document.getElementById('clip-image');
-const video = document.getElementById('clip-video');
+// Dos capas (A y B) para fundir un clip con el siguiente en vez de cortar.
+const layers = [
+  { image: document.getElementById('clip-image'), video: document.getElementById('clip-video') },
+  { image: document.getElementById('clip-image-b'), video: document.getElementById('clip-video-b') }
+].filter((layer) => layer.image && layer.video);
 const pet = document.getElementById('pet');
 const placeholder = document.getElementById('placeholder');
 const placeholderHint = document.getElementById('placeholder-hint');
 const bubble = document.getElementById('bubble');
+const bubbleText = document.getElementById('bubble-text') ?? bubble;
+const BUBBLE_STYLES = new Set(['terminal', 'comic', 'subtitulo', 'tarjeta']);
+const TYPE_MS = 28;
 const statusDot = document.getElementById('status');
 const RESIZE_EDGES = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
 // assets.json usa contain/cover/stretch; CSS llama "fill" a stretch.
@@ -11,7 +17,14 @@ const OBJECT_FIT = { contain: 'contain', cover: 'cover', stretch: 'fill' };
 let interactive = false;
 let connected = false;
 let currentClip = null;
+let front = 0;
+let request = 0;
+let fadeMs = 250;
+let cleanupTimer = null;
 let bubbleTimer = null;
+let typeTimer = null;
+let bubbleState = 'idle';
+const bubbleQueue = [];
 let ignoring = null;
 
 // Evita mandar el mismo valor por IPC en cada movimiento del raton.
@@ -29,14 +42,31 @@ function clipUrl(file) {
   return `alba-clip://local/${file.split(/[\\/]/).map(encodeURIComponent).join('/')}`;
 }
 
-function hideAll() {
-  image.classList.remove('visible');
-  video.classList.remove('visible');
-  placeholder.classList.remove('visible');
-  video.pause();
-  video.removeAttribute('src');
-  video.load();
-  image.removeAttribute('src');
+function mediaOf(layer, kind) {
+  return kind === 'video' ? layer.video : layer.image;
+}
+
+function resetMedia(element) {
+  element.classList.remove('visible');
+  element.pause?.();
+  if (element.getAttribute('src') !== null) {
+    element.removeAttribute('src');
+    element.load?.();
+  }
+}
+
+function resetLayer(layer) {
+  resetMedia(layer.image);
+  resetMedia(layer.video);
+}
+
+function visibleMedia() {
+  for (const layer of layers) {
+    for (const element of [layer.image, layer.video]) {
+      if (element.classList.contains('visible')) return element;
+    }
+  }
+  return null;
 }
 
 function updatePlaceholder() {
@@ -49,8 +79,28 @@ function updatePlaceholder() {
 
 function clearClip() {
   currentClip = null;
-  hideAll();
+  request += 1;
+  for (const layer of layers) resetLayer(layer);
   updatePlaceholder();
+}
+
+// Cuando el clip nuevo ya tiene su primer cuadro, se funde sobre el anterior.
+function reveal(token, layerIndex, element) {
+  if (token !== request) return;
+  const previous = layers[front];
+  front = layerIndex;
+  element.classList.add('visible');
+  for (const other of [previous.image, previous.video]) {
+    if (other !== element) other.classList.remove('visible');
+  }
+  updatePlaceholder();
+  if (cleanupTimer) clearTimeout(cleanupTimer);
+  if (previous !== layers[layerIndex]) {
+    cleanupTimer = setTimeout(() => {
+      cleanupTimer = null;
+      if (layers[front] !== previous) resetLayer(previous);
+    }, fadeMs + 50);
+  }
 }
 
 function renderClip(clip) {
@@ -62,44 +112,93 @@ function renderClip(clip) {
   const key = `${clip.kind}:${clip.file}`;
   if (currentClip === key) return;
   currentClip = key;
-  hideAll();
-  const url = clipUrl(clip.file);
+  const token = ++request;
+  // Sin clip visible todavia, se carga en la capa de delante; si no, en la otra.
+  const target = visibleMedia() ? 1 - front : front;
+  const layer = layers[target];
+  resetLayer(layer);
+  const element = mediaOf(layer, clip.kind);
+  element.style.objectFit = objectFit(clip.fit);
+  element.dataset.token = String(token);
+  element.dataset.layer = String(target);
   if (clip.kind === 'video') {
-    video.loop = clip.loop !== false;
-    video.style.objectFit = objectFit(clip.fit);
-    video.src = url;
-    video.classList.add('visible');
-    video.play().catch(() => {});
+    element.loop = clip.loop !== false;
+    element.src = clipUrl(clip.file);
+    element.play().catch(() => {});
   } else {
-    image.style.objectFit = objectFit(clip.fit);
-    image.src = url;
-    image.classList.add('visible');
+    element.src = clipUrl(clip.file);
   }
-  updatePlaceholder();
+}
+
+function onClipReady() {
+  const token = Number(this.dataset?.token);
+  if (token !== request) return;
+  if (this.tagName === 'VIDEO') reportNaturalSize(this.videoWidth, this.videoHeight);
+  else reportNaturalSize(this.naturalWidth, this.naturalHeight);
+  reveal(token, Number(this.dataset.layer), this);
 }
 
 function onClipError() {
-  if (currentClip === null || !this.getAttribute('src')) return;
+  if (Number(this.dataset?.token) !== request || !this.getAttribute('src')) return;
   clearClip();
 }
-image.addEventListener('error', onClipError);
-video.addEventListener('error', onClipError);
 
 function reportNaturalSize(width, height) {
   if (!width || !height) return;
   window.alba.clipSize?.({ width, height });
 }
-image.addEventListener('load', () => reportNaturalSize(image.naturalWidth, image.naturalHeight));
-video.addEventListener('loadedmetadata', () => reportNaturalSize(video.videoWidth, video.videoHeight));
+
+for (const layer of layers) {
+  layer.image.addEventListener('load', onClipReady);
+  layer.image.addEventListener('error', onClipError);
+  layer.video.addEventListener('loadeddata', onClipReady);
+  layer.video.addEventListener('error', onClipError);
+}
 
 updatePlaceholder();
 
+// Globo de dialogo: frases escritas letra por letra. El bridge ya las manda
+// al ritmo de lectura (speech-queue), asi que aqui no se descarta ninguna.
+function hideBubble() {
+  bubbleState = 'idle';
+  bubble.classList.remove('visible');
+}
+
+function nextBubble() {
+  if (bubbleTimer) clearTimeout(bubbleTimer);
+  bubbleTimer = null;
+  const text = bubbleQueue.shift();
+  if (text === undefined) { hideBubble(); return; }
+  bubbleState = 'typing';
+  bubbleText.textContent = '';
+  bubble.classList.add('visible');
+  const chars = [...text];
+  let index = 0;
+  const step = () => {
+    // Con frases en espera escribe mas rapido.
+    index = Math.min(chars.length, index + (bubbleQueue.length ? 2 : 1));
+    bubbleText.textContent = chars.slice(0, index).join('');
+    if (index < chars.length) { typeTimer = setTimeout(step, TYPE_MS); return; }
+    typeTimer = null;
+    bubbleState = 'holding';
+    // Se queda un poco mas que el tiempo de lectura del bridge para no
+    // parpadear entre una frase y la siguiente.
+    const hold = bubbleQueue.length ? 300 : Math.min(9000, Math.max(1500, chars.length * 45)) + 900;
+    bubbleTimer = setTimeout(nextBubble, hold);
+  };
+  step();
+}
+
 function showBubble(text) {
   if (!text) return;
-  bubble.textContent = text;
-  bubble.classList.add('visible');
-  if (bubbleTimer) clearTimeout(bubbleTimer);
-  bubbleTimer = setTimeout(() => bubble.classList.remove('visible'), Math.min(12000, Math.max(2200, text.length * 90)));
+  bubbleQueue.push(String(text));
+  while (bubbleQueue.length > 8) bubbleQueue.shift();
+  if (bubbleState === 'idle' || bubbleState === 'holding') nextBubble();
+}
+
+function setBubbleStyle(style) {
+  const chosen = BUBBLE_STYLES.has(style) ? style : 'terminal';
+  for (const name of BUBBLE_STYLES) document.body.classList.toggle(`bubble-${name}`, name === chosen);
 }
 
 window.alba.onState((message) => {
@@ -124,9 +223,14 @@ window.alba.onInteractive((value) => {
     setIgnore(true);
   }
 });
-window.alba.getConfig().then(({ interactive: value }) => {
+window.alba.getConfig().then(({ interactive: value, fadeMs: fade, bubble: bubbleStyle }) => {
+  setBubbleStyle(bubbleStyle);
   interactive = Boolean(value);
   document.body.classList.toggle('interactive', interactive);
+  if (Number.isFinite(fade) && fade >= 0) {
+    fadeMs = fade;
+    document.documentElement?.style?.setProperty('--fade', `${fade}ms`);
+  }
 });
 
 // Rectangulo donde realmente se dibuja el clip dentro de su elemento, segun object-fit.
@@ -152,11 +256,11 @@ function drawnRect(element, width, height) {
 // (o el marcador); el resto deja pasar los clics al escritorio.
 function isOverAlba(event) {
   if (placeholder.classList.contains('visible')) return Boolean(event.target?.closest?.('#placeholder'));
-  const media = video.classList.contains('visible') ? video : image.classList.contains('visible') ? image : null;
+  const media = visibleMedia();
   if (!media) return false;
-  const rect = media === video
-    ? drawnRect(video, video.videoWidth, video.videoHeight)
-    : drawnRect(image, image.naturalWidth, image.naturalHeight);
+  const rect = media.tagName === 'VIDEO'
+    ? drawnRect(media, media.videoWidth, media.videoHeight)
+    : drawnRect(media, media.naturalWidth, media.naturalHeight);
   return event.clientX >= rect.left && event.clientX <= rect.right
     && event.clientY >= rect.top && event.clientY <= rect.bottom;
 }
@@ -184,6 +288,17 @@ for (const edge of RESIZE_EDGES) {
     window.alba.resizeStart(edge);
   });
 }
+// En modo interaccion, la rueda del raton agranda o achica a Alba.
+let lastWheel = 0;
+document.addEventListener('wheel', (event) => {
+  if (!interactive) return;
+  event.preventDefault();
+  const now = Date.now();
+  if (now - lastWheel < 80) return;
+  lastWheel = now;
+  window.alba.scale?.(event.deltaY < 0 ? 1 : -1);
+}, { passive: false });
+
 window.addEventListener('mouseup', () => {
   window.alba.dragEnd();
   window.alba.resizeEnd?.();
